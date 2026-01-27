@@ -4,6 +4,9 @@ import { useState } from "react";
 import Button from "@/components/Button";
 import TextField from "@/components/TextField";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/components/AuthProvider";
+import type { UserRole } from "@/lib/types";
+
 
 function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -11,6 +14,9 @@ function isValidEmail(email: string) {
 
 export default function LoginPage() {
   const router = useRouter();
+  const { login } = useAuth();
+  const [role, setRole] = useState<UserRole>("EMPLOYEE");
+
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -49,11 +55,12 @@ export default function LoginPage() {
     setStatusMsg("");
     if (!validate()) return;
 
-    // Demo login (bez backenda za sad)
+    //demo login
     setStatusMsg("Ulogovan (demo). Prebacujem na kalendar...");
-    setTimeout(() => router.push("/calendar"), 700);
-  }
-
+    login({ email: email.trim(), role });
+    router.push("/calendar");
+    
+}
   return (
     <main>
       <h1 className="h1">Login</h1>
@@ -78,6 +85,25 @@ export default function LoginPage() {
             placeholder="••••"
             error={passwordError}
           />
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        <label style={{ fontWeight: 700 }}>Role (demo)</label>
+            <select
+                value={role}
+                onChange={(e) => setRole(e.target.value as UserRole)}
+                style={{
+                padding: "10px 12px",
+                borderRadius: 8,
+                border: "1px solid #333",
+                background: "#0b0b0b",
+                color: "inherit",
+                }}
+            >
+                <option value="EMPLOYEE">EMPLOYEE</option>
+                <option value="MANAGER">MANAGER</option>
+                <option value="ADMIN">ADMIN</option>
+            </select>
+        </div>
+
 
           <div className="row">
             <Button onClick={handleLogin}>Login</Button>

@@ -25,7 +25,7 @@ color: #f5f5f5;
   font-family: Arial, Helvetica, sans-serif;
   
 }
-/* ---------- APP UI BASE (Korak 3) ---------- */
+/* ---------- APP UI BASE---------- */
 
 .page {
   max-width: 980px;
@@ -82,5 +82,75 @@ input {
 input::placeholder {
   color: #8a8a8a;
 }
+/* ---------- WEEK CALENDAR ---------- */
+.weekHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.weekGrid {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+}
+
+.dayCol {
+  border: 1px solid #2a2a2a;
+  border-radius: 12px;
+  padding: 12px;
+  background: #0f0f0f;
+  min-height: 260px;
+}
+
+.dayTitle {
+  font-weight: 800;
+  margin-bottom: 10px;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #2a2a2a;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: #ddd;
+}
+
+.eventCard {
+  border: 1px solid #333;
+  border-radius: 10px;
+  padding: 10px;
+  margin-top: 10px;
+  background: #0b0b0b;
+}
+
+.eventTitle {
+  font-weight: 700;
+  margin: 0 0 6px 0;
+}
+
+.eventTime {
+  font-size: 12px;
+  color: #aaa;
+}
+.modalActions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
+.hr {
+  height: 1px;
+  background: #2a2a2a;
+  margin: 12px 0;
+}
+
 
 
