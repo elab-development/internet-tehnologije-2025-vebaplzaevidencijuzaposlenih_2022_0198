@@ -7,22 +7,26 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import type { UserRole } from "@/lib/types";
 
-
 function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+//React komponenta
 export default function LoginPage() {
+  //2 hooka
   const router = useRouter();
   const { login } = useAuth();
+
+  //state forme
   const [role, setRole] = useState<UserRole>("EMPLOYEE");
-
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  //ui feedback state
   const [emailError, setEmailError] = useState<string | undefined>(undefined);
-  const [passwordError, setPasswordError] = useState<string | undefined>(undefined);
+  const [passwordError, setPasswordError] = useState<string | undefined>(
+    undefined
+  );
   const [statusMsg, setStatusMsg] = useState<string>("");
 
   function validate() {
@@ -52,15 +56,17 @@ export default function LoginPage() {
   }
 
   function handleLogin() {
+    console.log("Log: izvrsava se fja handleLogin.");
     setStatusMsg("");
     if (!validate()) return;
 
     //demo login
     setStatusMsg("Ulogovan (demo). Prebacujem na kalendar...");
     login({ email: email.trim(), role });
-    router.push("/calendar");
-    
-}
+    router.push("/attendance");
+  }
+
+  //sta se vidi na ekranu:
   return (
     <main>
       <h1 className="h1">Login</h1>
@@ -85,25 +91,17 @@ export default function LoginPage() {
             placeholder="••••"
             error={passwordError}
           />
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        <label style={{ fontWeight: 700 }}>Role (demo)</label>
+          <div>
             <select
-                value={role}
-                onChange={(e) => setRole(e.target.value as UserRole)}
-                style={{
-                padding: "10px 12px",
-                borderRadius: 8,
-                border: "1px solid #333",
-                background: "#0b0b0b",
-                color: "inherit",
-                }}
+              className="select"
+              value={role}
+              onChange={(e) => setRole(e.target.value as UserRole)}
             >
-                <option value="EMPLOYEE">EMPLOYEE</option>
-                <option value="MANAGER">MANAGER</option>
-                <option value="ADMIN">ADMIN</option>
+              <option value="EMPLOYEE">EMPLOYEE</option>
+              <option value="MANAGER">MANAGER</option>
+              <option value="ADMIN">ADMIN</option>
             </select>
-        </div>
-
+          </div>
 
           <div className="row">
             <Button onClick={handleLogin}>Login</Button>

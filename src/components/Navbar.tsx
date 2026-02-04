@@ -11,48 +11,53 @@ export default function Navbar() {
   const isAdmin = user?.role === "ADMIN";
 
   return (
-    <nav style={{ marginBottom: 16, display: "flex", justifyContent: "space-between", gap: 12 }}>
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-        <Link href="/">Home</Link>
-        {" | "}
-        <Link href="/login">Login</Link>
-        {" | "}
-        <Link href="/calendar">Calendar</Link>
-        {isAdmin ? (
-          <>
-            {" | "}
-            <Link href="/admin">Admin</Link>
-          </>
-        ) : null}
-      </div>
+    <nav className="navbar">
+      <div className="navbarInner">
+        <div className="navLinks">
+          <Link href="/" className="navLink">
+            Home
+          </Link>
 
-      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-        {user ? (
-          <>
-            <span className="pill">
-              {user.email} • <strong>{user.role}</strong>
-            </span>
-            <button
-              onClick={() => {
-                logout();
-                router.push("/login");
-              }}
-              style={{
-                border: "1px solid #333",
-                background: "#0b0b0b",
-                color: "inherit",
-                borderRadius: 10,
-                padding: "6px 10px",
-                cursor: "pointer",
-                fontWeight: 700,
-              }}
-            >
-              Logout
-            </button>
-          </>
-        ) : (
-          <span className="muted">Not logged in</span>
-        )}
+          <Link href="/login" className="navLink">
+            Login
+          </Link>
+
+          <Link href="/attendance" className="navLink">
+            Attendance
+          </Link>
+
+          <Link href="/calendar" className="navLink">
+            Calendar
+          </Link>
+
+          {isAdmin ? (
+            <Link href="/admin" className="navLink">
+              Admin
+            </Link>
+          ) : null}
+        </div>
+
+        <div className="navRight">
+          {user ? (
+            <>
+              <span className="pill">
+                {user.email} • <span className="role-badge">{user.role}</span>
+              </span>
+
+              <button
+                className="btn"
+                onClick={() => {
+                  logout();
+                  router.push("/login");
+                }}
+              >
+                Logout
+              </button>
+            </>
+          ) : (
+            <span className="muted">Not logged in</span>
+          )}
+        </div>
       </div>
     </nav>
   );

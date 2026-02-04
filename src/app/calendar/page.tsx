@@ -8,7 +8,6 @@ import { addDays, startOfWeekMonday, toISODate } from "@/lib/date";
 import { mockActivities, type MockActivity } from "@/lib/mock";
 import { useAuth } from "@/components/AuthProvider";
 
-
 const dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri"];
 
 function isValidTime(t: string) {
@@ -25,9 +24,13 @@ export default function CalendarPage() {
   const { user } = useAuth();
   const canEditActivities = user?.role === "MANAGER" || user?.role === "ADMIN";
 
-  const [weekStart, setWeekStart] = useState<Date>(() => startOfWeekMonday(new Date()));
+  const [weekStart, setWeekStart] = useState<Date>(() =>
+    startOfWeekMonday(new Date())
+  );
 
-  const [activities, setActivities] = useState<MockActivity[]>(() => mockActivities);
+  const [activities, setActivities] = useState<MockActivity[]>(
+    () => mockActivities
+  );
 
   //modal state
   const [open, setOpen] = useState(false);
@@ -37,7 +40,6 @@ export default function CalendarPage() {
   const [end, setEnd] = useState("10:00");
   const [err, setErr] = useState<string>("");
   const [editingId, setEditingId] = useState<string | null>(null);
-
 
   const days = useMemo(() => {
     return Array.from({ length: 5 }, (_, i) => addDays(weekStart, i));
@@ -56,8 +58,7 @@ export default function CalendarPage() {
     return map;
   }, [activities]);
 
-  useEffect(() => {
-  }, [weekStart]);
+  useEffect(() => {}, [weekStart]);
 
   const weekStartStr = toISODate(weekStart);
   const weekEndStr = toISODate(addDays(weekStart, 4));
@@ -73,7 +74,7 @@ export default function CalendarPage() {
     setOpen(true);
   }
 
-    function openEditModal(a: MockActivity) {
+  function openEditModal(a: MockActivity) {
     setEditingId(a.id);
     setFormDate(a.date);
     setTitle(a.title);
@@ -83,12 +84,13 @@ export default function CalendarPage() {
     setOpen(true);
   }
 
-
   function validateForm() {
     if (!formDate) return "Datum je obavezan.";
     if (!title.trim()) return "Naziv aktivnosti je obavezan.";
-    if (!isValidTime(start) || !isValidTime(end)) return "Vreme mora biti u formatu HH:mm.";
-    if (timeToMinutes(start) >= timeToMinutes(end)) return "Početak mora biti pre kraja.";
+    if (!isValidTime(start) || !isValidTime(end))
+      return "Vreme mora biti u formatu HH:mm.";
+    if (timeToMinutes(start) >= timeToMinutes(end))
+      return "Početak mora biti pre kraja.";
     return "";
   }
 
@@ -121,7 +123,6 @@ export default function CalendarPage() {
     setOpen(false);
   }
 
-
   function handleDelete(id: string) {
     setActivities((prev) => prev.filter((a) => a.id !== id));
   }
@@ -133,13 +134,18 @@ export default function CalendarPage() {
 
       <div className="weekHeader">
         <div className="row">
-          <Button onClick={() => setWeekStart(addDays(weekStart, -7))}>Prev week</Button>
-          <Button onClick={() => setWeekStart(startOfWeekMonday(new Date()))}>This week</Button>
-          <Button onClick={() => setWeekStart(addDays(weekStart, 7))}>Next week</Button>
-        {canEditActivities ? (
+          <Button onClick={() => setWeekStart(addDays(weekStart, -7))}>
+            Prev week
+          </Button>
+          <Button onClick={() => setWeekStart(startOfWeekMonday(new Date()))}>
+            This week
+          </Button>
+          <Button onClick={() => setWeekStart(addDays(weekStart, 7))}>
+            Next week
+          </Button>
+          {canEditActivities ? (
             <Button onClick={() => openAddModal()}>+ Add activity</Button>
-        ) : null}
-
+          ) : null}
         </div>
 
         <span className="pill">
@@ -159,9 +165,9 @@ export default function CalendarPage() {
                   {dayNames[idx]} <span className="muted">({dateStr})</span>
                 </div>
                 {canEditActivities ? (
-                    <Button onClick={() => openAddModal(dateStr)}>Add</Button>
+                  <Button onClick={() => openAddModal(dateStr)}>Add</Button>
                 ) : null}
-                </div>
+              </div>
 
               {list.length === 0 ? (
                 <div className="muted">No activities.</div>
@@ -173,16 +179,22 @@ export default function CalendarPage() {
                       {a.start} – {a.end}
                     </div>
 
-                    <div className="modalActions" style={{ justifyContent: "flex-start" }}>
-                    {canEditActivities ? (
-                        <div className="modalActions" style={{ justifyContent: "flex-start" }}>
-                            <Button onClick={() => openEditModal(a)}>Edit</Button>
-                            <Button onClick={() => handleDelete(a.id)}>Delete</Button>
+                    <div
+                      className="modalActions"
+                      style={{ justifyContent: "flex-start" }}
+                    >
+                      {canEditActivities ? (
+                        <div
+                          className="modalActions"
+                          style={{ justifyContent: "flex-start" }}
+                        >
+                          <Button onClick={() => openEditModal(a)}>Edit</Button>
+                          <Button onClick={() => handleDelete(a.id)}>
+                            Delete
+                          </Button>
                         </div>
-                    ) : null}
-
+                      ) : null}
                     </div>
-
                   </div>
                 ))
               )}
@@ -191,7 +203,11 @@ export default function CalendarPage() {
         })}
       </div>
 
-    <Modal open={open} title={editingId ? "Edit activity" : "Add activity"} onClose={() => setOpen(false)}>
+      <Modal
+        open={open}
+        title={editingId ? "Edit activity" : "Add activity"}
+        onClose={() => setOpen(false)}
+      >
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <TextField
             label="Datum (YYYY-MM-DD)"
@@ -226,7 +242,9 @@ export default function CalendarPage() {
             </div>
           </div>
 
-          {err ? <div style={{ color: "#ff6b6b", fontSize: 13 }}>{err}</div> : null}
+          {err ? (
+            <div style={{ color: "#ff6b6b", fontSize: 13 }}>{err}</div>
+          ) : null}
 
           <div className="hr" />
 

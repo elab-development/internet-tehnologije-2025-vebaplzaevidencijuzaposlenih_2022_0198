@@ -3,6 +3,7 @@ type ButtonProps = {
   onClick?: () => void;
   type?: "button" | "submit";
   disabled?: boolean;
+  variant?: "default" | "primary" | "danger";
 };
 
 export default function Button({
@@ -10,20 +11,14 @@ export default function Button({
   onClick,
   type = "button",
   disabled = false,
+  variant = "default",
 }: ButtonProps) {
   return (
     <button
       type={type}
       onClick={onClick}
       disabled={disabled}
-      style={{
-        padding: "10px 14px",
-        borderRadius: 8,
-        border: "1px solid #111",
-        cursor: disabled ? "not-allowed" : "pointer",
-        opacity: disabled ? 0.6 : 1,
-        fontWeight: 600,
-      }}
+      className={`btn btn-${variant}`}
     >
       {children}
     </button>

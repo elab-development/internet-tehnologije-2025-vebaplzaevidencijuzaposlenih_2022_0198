@@ -4,6 +4,7 @@ const KEY = "current_user";
 
 export function setCurrentUser(user: CurrentUser) {
   localStorage.setItem(KEY, JSON.stringify(user));
+  console.log("User set inside auth.ts");
 }
 
 export function getCurrentUser(): CurrentUser | null {
