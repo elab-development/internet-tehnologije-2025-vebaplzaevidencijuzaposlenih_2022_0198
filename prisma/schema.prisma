@@ -12,3 +12,107 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+model UserRole{
+  id Int @id @default(autoincrement())
+  name String @unique
+
+  user User[]
+}
+
+model Department{
+  id Int @id @default(autoincrement())
+  name String @unique
+  description String?
+
+  users User[]
+}
+
+model Position {
+  id          Int    @id @default(autoincrement())
+  name        String @unique
+  description String?
+  level       Int?
+
+  users User[]
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  firstName    String
+  lastName     String
+  email        String   @unique
+  passwordHash String
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  roleId       Int
+  departmentId Int?
+  positionId   Int?
+
+  role       UserRole    @relation(fields: [roleId], references: [id])
+  department Department? @relation(fields: [departmentId], references: [id])
+  position   Position?   @relation(fields: [positionId], references: [id])
+
+  attendances  Attendance[]
+  activities   Activity[]
+  adminActions AdminAction[]
+}
+
+model AttendanceStatus {
+  id   Int    @id @default(autoincrement())
+  name String @unique
+
+  attendances Attendance[]
+}
+
+model Attendance {
+  id              Int      @id @default(autoincrement())
+  date            DateTime // koristiš samo datum (na frontu formatiraš)
+  startTime       DateTime?
+  endTime         DateTime?
+  totalWorkMinutes Int?    // može i da se računa, ali zgodno za izveštaje
+
+  userId   Int
+  statusId Int
+
+  user   User             @relation(fields: [userId], references: [id])
+  status AttendanceStatus @relation(fields: [statusId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, date])
+}
+
+model ActivityType {
+  id   Int    @id @default(autoincrement())
+  name String @unique
+
+  activities Activity[]
+}
+model Activity {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  date        DateTime
+  startTime   DateTime
+  endTime     DateTime
+
+  userId Int
+  typeId Int
+
+  user User         @relation(fields: [userId], references: [id])
+  type ActivityType @relation(fields: [typeId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+model AdminAction {
+  id        Int      @id @default(autoincrement())
+  action    String   // npr: "CREATE_USER", "CHANGE_ROLE", "DELETE_ACTIVITY"
+  createdAt DateTime @default(now())
+  note      String?
+
+  adminId Int
+  admin   User @relation(fields: [adminId], references: [id])
+}
