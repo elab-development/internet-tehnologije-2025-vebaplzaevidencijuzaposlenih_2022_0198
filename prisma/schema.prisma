@@ -44,6 +44,8 @@ model User {
   passwordHash String
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
+  lastLoginAt DateTime?
+
 
   roleId       Int
   departmentId Int?
