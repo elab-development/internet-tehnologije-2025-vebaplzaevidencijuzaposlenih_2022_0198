@@ -10,6 +10,19 @@ export default function Navbar() {
 
   const isAdmin = user?.role === "ADMIN";
 
+  async function handleLogout() {
+    // backend logout (brise cookie)
+    await fetch("/api/auth/logout", {
+      method: "POST",
+      credentials: "include",
+    }).catch(() => null);
+
+    // frontend state (AuthProvider)
+    await logout();
+
+    router.push("/login");
+  }
+
   return (
     <nav className="navbar">
       <div className="navbarInner">
@@ -18,22 +31,34 @@ export default function Navbar() {
             Home
           </Link>
 
-          <Link href="/login" className="navLink">
-            Login
-          </Link>
+          {/* Login/Register se vide samo kad user nije ulogovan */}
+          {!user ? (
+            <>
+              <Link href="/login" className="navLink">
+                Login
+              </Link>
+              <Link href="/register" className="navLink">
+                Register
+              </Link>
+            </>
+          ) : null}
 
-          <Link href="/attendance" className="navLink">
-            Attendance
-          </Link>
+          {user ? (
+            <>
+              <Link href="/attendance" className="navLink">
+                Attendance
+              </Link>
 
-          <Link href="/calendar" className="navLink">
-            Calendar
-          </Link>
+              <Link href="/calendar" className="navLink">
+                Calendar
+              </Link>
 
-          {isAdmin ? (
-            <Link href="/admin" className="navLink">
-              Admin
-            </Link>
+              {isAdmin ? (
+                <Link href="/admin" className="navLink">
+                  Admin
+                </Link>
+              ) : null}
+            </>
           ) : null}
         </div>
 
@@ -44,13 +69,7 @@ export default function Navbar() {
                 {user.email} • <span className="role-badge">{user.role}</span>
               </span>
 
-              <button
-                className="btn"
-                onClick={() => {
-                  logout();
-                  router.push("/login");
-                }}
-              >
+              <button className="btn" onClick={handleLogout}>
                 Logout
               </button>
             </>

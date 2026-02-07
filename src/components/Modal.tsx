@@ -14,7 +14,7 @@ export default function Modal({ open, title, children, onClose }: ModalProps) {
       style={{
         position: "fixed",
         inset: 0,
-        background: "rgba(0,0,0,0.6)",
+        background: "rgba(0, 0, 0, 0.6)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -28,7 +28,7 @@ export default function Modal({ open, title, children, onClose }: ModalProps) {
           width: "min(520px, 100%)",
           borderRadius: 14,
           border: "1px solid #333",
-          background: "#111",
+          background: "rgba(255, 255, 255, 0.96)",
           padding: 16,
         }}
       >
@@ -49,7 +49,7 @@ export default function Modal({ open, title, children, onClose }: ModalProps) {
             onClick={onClose}
             style={{
               border: "1px solid #333",
-              background: "#0b0b0b",
+              background: "rgba(255, 255, 255, 0.96)",
               color: "inherit",
               borderRadius: 10,
               padding: "6px 10px",
