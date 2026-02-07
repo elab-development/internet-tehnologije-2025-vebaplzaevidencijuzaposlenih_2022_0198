@@ -5,19 +5,40 @@ import Button from "@/components/Button";
 import Modal from "@/components/Modal";
 import TextField from "@/components/TextField";
 import { addDays, startOfWeekMonday, toISODate } from "@/lib/date";
-import { mockActivities, type MockActivity } from "@/lib/mock";
 import { useAuth } from "@/components/AuthProvider";
 
 const dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri"];
 
+type Activity = {
+  id: number;
+  name: string;
+  description: string | null;
+  date: string;
+  startTime: string;
+  endTime: string;
+  user: { id: number; email: string; firstName: string; lastName: string };
+  type: { id: number; name: string };
+};
+
+function ownerLabel(a: Activity) {
+  const full = `${a.user.firstName} ${a.user.lastName}`.trim();
+  return full ? full : a.user.email;
+}
+
 function isValidTime(t: string) {
-  //hh:mm
   return /^\d{2}:\d{2}$/.test(t);
 }
 
 function timeToMinutes(t: string) {
   const [hh, mm] = t.split(":").map(Number);
   return hh * 60 + mm;
+}
+
+function isoToHHMM(iso: string) {
+  const d = new Date(iso);
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  return `${hh}:${mm}`;
 }
 
 export default function CalendarPage() {
@@ -28,45 +49,92 @@ export default function CalendarPage() {
     startOfWeekMonday(new Date())
   );
 
-  const [activities, setActivities] = useState<MockActivity[]>(
-    () => mockActivities
-  );
+  const weekStartStr = toISODate(weekStart);
+  const weekEndStr = toISODate(addDays(weekStart, 4));
 
-  //modal state
+  const [activities, setActivities] = useState<Activity[]>([]);
+
   const [open, setOpen] = useState(false);
   const [formDate, setFormDate] = useState("");
+  const [users, setUsers] = useState<
+    { id: number; firstName: string; lastName: string; email: string }[]
+  >([]);
+  const [userId, setUserId] = useState("");
   const [title, setTitle] = useState("");
   const [start, setStart] = useState("09:00");
   const [end, setEnd] = useState("10:00");
   const [err, setErr] = useState<string>("");
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
 
   const days = useMemo(() => {
     return Array.from({ length: 5 }, (_, i) => addDays(weekStart, i));
   }, [weekStart]);
 
+  async function loadWeek() {
+    const res = await fetch(
+      `/api/activities?from=${weekStartStr}&to=${weekEndStr}`,
+      { credentials: "include" }
+    );
+    const data = await res.json().catch(() => null);
+
+    if (!res.ok) {
+      console.error("GET /api/activities failed:", data);
+      setActivities([]);
+      return;
+    }
+
+    const items: Activity[] = (data?.activities ?? []).map((a: any) => ({
+      ...a,
+      date: a.date?.toString().slice(0, 10),
+      startTime: a.startTime,
+      endTime: a.endTime,
+    }));
+
+    setActivities(items);
+  }
+
+  async function loadUsers() {
+    if (!canEditActivities) return;
+
+    const res = await fetch("/api/users", { credentials: "include" });
+    const data = await res.json().catch(() => null);
+
+    if (!res.ok) {
+      console.error("GET /api/users failed:", data);
+      setUsers([]);
+      return;
+    }
+
+    setUsers(data?.users ?? []);
+  }
+
+  useEffect(() => {
+    loadWeek();
+  }, [weekStartStr, weekEndStr]);
+  useEffect(() => {
+    loadUsers();
+  }, [canEditActivities]);
+
   const activitiesByDate = useMemo(() => {
-    const map: Record<string, MockActivity[]> = {};
+    const map: Record<string, Activity[]> = {};
     for (const a of activities) {
       if (!map[a.date]) map[a.date] = [];
       map[a.date].push(a);
     }
-    //sortiranje
     for (const k of Object.keys(map)) {
-      map[k].sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
+      map[k].sort(
+        (a, b) =>
+          new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+      );
     }
     return map;
   }, [activities]);
-
-  useEffect(() => {}, [weekStart]);
-
-  const weekStartStr = toISODate(weekStart);
-  const weekEndStr = toISODate(addDays(weekStart, 4));
 
   function openAddModal(defaultDate?: string) {
     setEditingId(null);
     const d = defaultDate ?? weekStartStr;
     setFormDate(d);
+    setUserId("");
     setTitle("");
     setStart("09:00");
     setEnd("10:00");
@@ -74,17 +142,19 @@ export default function CalendarPage() {
     setOpen(true);
   }
 
-  function openEditModal(a: MockActivity) {
+  function openEditModal(a: Activity) {
     setEditingId(a.id);
     setFormDate(a.date);
-    setTitle(a.title);
-    setStart(a.start);
-    setEnd(a.end);
+    setUserId(String(a.user.id));
+    setTitle(a.name);
+    setStart(isoToHHMM(a.startTime));
+    setEnd(isoToHHMM(a.endTime));
     setErr("");
     setOpen(true);
   }
 
   function validateForm() {
+    if (canEditActivities && !userId) return "Moraš da izabereš korisnika.";
     if (!formDate) return "Datum je obavezan.";
     if (!title.trim()) return "Naziv aktivnosti je obavezan.";
     if (!isValidTime(start) || !isValidTime(end))
@@ -94,37 +164,75 @@ export default function CalendarPage() {
     return "";
   }
 
-  function handleSave() {
+  async function handleSave() {
     const msg = validateForm();
     if (msg) {
       setErr(msg);
       return;
     }
 
+    const startISO = new Date(`${formDate}T${start}:00`).toISOString();
+    const endISO = new Date(`${formDate}T${end}:00`).toISOString();
+
     if (editingId) {
-      setActivities((prev) =>
-        prev.map((a) =>
-          a.id === editingId
-            ? { ...a, date: formDate, title: title.trim(), start, end }
-            : a
-        )
-      );
+      const res = await fetch(`/api/activities/${editingId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          name: title.trim(),
+          description: null,
+          date: formDate,
+          startTime: startISO,
+          endTime: endISO,
+          userId: userId ? Number(userId) : undefined,
+        }),
+      });
+
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        setErr(data?.error ?? "Update failed");
+        return;
+      }
     } else {
-      const newActivity: MockActivity = {
-        id: String(Date.now()),
-        date: formDate,
-        title: title.trim(),
-        start,
-        end,
-      };
-      setActivities((prev) => [...prev, newActivity]);
+      const res = await fetch(`/api/activities`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          name: title.trim(),
+          description: null,
+          date: formDate,
+          startTime: startISO,
+          endTime: endISO,
+          userId: userId ? Number(userId) : undefined,
+        }),
+      });
+
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        setErr(data?.error ?? "Create failed");
+        return;
+      }
     }
 
     setOpen(false);
+    await loadWeek();
   }
 
-  function handleDelete(id: string) {
-    setActivities((prev) => prev.filter((a) => a.id !== id));
+  async function handleDelete(id: number) {
+    const res = await fetch(`/api/activities/${id}`, {
+      method: "DELETE",
+      credentials: "include",
+    });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      console.error("Delete failed:", data);
+      return;
+    }
+
+    await loadWeek();
   }
 
   return (
@@ -174,27 +282,29 @@ export default function CalendarPage() {
               ) : (
                 list.map((a) => (
                   <div key={a.id} className="eventCard">
-                    <p className="eventTitle">{a.title}</p>
+                    <p className="eventTitle">{a.name}</p>
+
                     <div className="eventTime">
-                      {a.start} – {a.end}
+                      {isoToHHMM(a.startTime)} – {isoToHHMM(a.endTime)}
                     </div>
 
-                    <div
-                      className="modalActions"
-                      style={{ justifyContent: "flex-start" }}
-                    >
-                      {canEditActivities ? (
-                        <div
-                          className="modalActions"
-                          style={{ justifyContent: "flex-start" }}
-                        >
-                          <Button onClick={() => openEditModal(a)}>Edit</Button>
-                          <Button onClick={() => handleDelete(a.id)}>
-                            Delete
-                          </Button>
-                        </div>
-                      ) : null}
-                    </div>
+                    {canEditActivities ? (
+                      <div className="muted" style={{ fontSize: 12 }}>
+                        User: <strong>{ownerLabel(a)}</strong>
+                      </div>
+                    ) : null}
+
+                    {canEditActivities ? (
+                      <div
+                        className="modalActions"
+                        style={{ justifyContent: "flex-start" }}
+                      >
+                        <Button onClick={() => openEditModal(a)}>Edit</Button>
+                        <Button onClick={() => handleDelete(a.id)}>
+                          Delete
+                        </Button>
+                      </div>
+                    ) : null}
                   </div>
                 ))
               )}
@@ -215,6 +325,25 @@ export default function CalendarPage() {
             onChange={setFormDate}
             placeholder="2026-01-27"
           />
+          {canEditActivities ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <label style={{ fontSize: 13 }} className="muted">
+                Korisnik
+              </label>
+
+              <select
+                value={userId}
+                onChange={(e) => setUserId(e.target.value)}
+                className="select"
+              >
+                {users.map((u) => (
+                  <option key={u.id} value={String(u.id)}>
+                    {u.firstName} {u.lastName} — {u.email}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : null}
 
           <TextField
             label="Naziv"
