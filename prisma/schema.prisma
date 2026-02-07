@@ -69,10 +69,10 @@ model AttendanceStatus {
 
 model Attendance {
   id              Int      @id @default(autoincrement())
-  date            DateTime // koristiš samo datum (na frontu formatiraš)
+  date            DateTime 
   startTime       DateTime?
   endTime         DateTime?
-  totalWorkMinutes Int?    // može i da se računa, ali zgodno za izveštaje
+  totalWorkMinutes Int?    
 
   userId   Int
   statusId Int
