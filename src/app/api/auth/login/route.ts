@@ -1,8 +1,13 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcrypt";
 
-const { prisma } = require("../../../../../src/lib/prisma");
-import { signToken, setAuthCookie } from "../../../../../src/lib/auth.server";
+import { prisma } from "@/lib/prisma";
+
+import {
+  signToken,
+  setAuthCookie,
+  clearAuthCookie,
+} from "../../../../../src/lib/auth.server";
 
 export async function POST(req: Request) {
   try {
@@ -21,7 +26,7 @@ export async function POST(req: Request) {
       include: { role: true },
     });
 
-    //nije bezbedno otkriti da li je imejl tacan
+    //nije bezbedno otkriti da li je mejl tacan
     if (!user || !user.isActive) {
       return NextResponse.json(
         { error: "Invalid credentials" },
@@ -30,6 +35,12 @@ export async function POST(req: Request) {
     }
 
     const ok = await bcrypt.compare(password, user.passwordHash);
+    if (ok) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { lastLoginAt: new Date() },
+      });
+    }
     if (!ok) {
       return NextResponse.json(
         { error: "Invalid credentials" },
@@ -46,6 +57,7 @@ export async function POST(req: Request) {
     );
 
     //httpOnly cookie
+    res.headers.append("Set-Cookie", clearAuthCookie());
     res.headers.set("Set-Cookie", setAuthCookie(token));
     return res;
   } catch {

@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcrypt";
+import { signToken, setAuthCookie, clearAuthCookie } from "@/lib/auth.server";
 
-const { prisma } = require("../../../../src/lib/prisma");
+import { prisma } from "@/lib/prisma";
 
 export async function POST(req: Request) {
   try {
@@ -60,12 +61,19 @@ export async function POST(req: Request) {
       },
     });
 
-    return NextResponse.json(
-      //ovde upisujemo u usera podatke iz selecta
+    const token = signToken({ userId: user.id, role: user.role.name });
+
+    const res = NextResponse.json(
       { user: { ...user, role: user.role.name } },
       { status: 201 }
     );
-  } catch {
+
+    res.headers.append("Set-Cookie", clearAuthCookie());
+    res.headers.append("Set-Cookie", setAuthCookie(token));
+
+    return res;
+  } catch (e) {
+    console.error("REGISTER ERROR:", e);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

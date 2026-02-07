@@ -1,43 +1,55 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import type { CurrentUser } from "@/lib/types";
-import { clearCurrentUser, getCurrentUser, setCurrentUser } from "@/lib/auth";
+import { createContext, useContext, useEffect, useState } from "react";
 
-type AuthCtx = {
-  user: CurrentUser | null;
-  login: (u: CurrentUser) => void;
-  logout: () => void;
+type User = {
+  email: string;
+  role: string;
 };
 
-const AuthContext = createContext<AuthCtx | null>(null);
+type AuthContextType = {
+  user: User | null;
+  refresh: () => Promise<void>;
+  logout: () => Promise<void>;
+};
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<CurrentUser | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  async function refresh() {
+    const res = await fetch("/api/auth/me", {
+      credentials: "include",
+    });
+    const data = await res.json();
+    setUser(data.user);
+  }
+
+  async function logout() {
+    await fetch("/api/auth/logout", {
+      method: "POST",
+      credentials: "include",
+    });
+    setUser(null);
+  }
 
   useEffect(() => {
-    setUser(getCurrentUser());
+    refresh().finally(() => setLoading(false));
   }, []);
 
-  const value = useMemo<AuthCtx>(() => {
-    return {
-      user,
-      login: (u) => {
-        setCurrentUser(u);
-        setUser(u);
-      },
-      logout: () => {
-        clearCurrentUser();
-        setUser(null);
-      },
-    };
-  }, [user]);
+  if (loading) return null;
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={{ user, refresh, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used inside <AuthProvider />");
+  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
   return ctx;
 }
