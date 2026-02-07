@@ -5,7 +5,7 @@ import Button from "@/components/Button";
 import TextField from "@/components/TextField";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
-import type { UserRole } from "@/lib/types";
+import Link from "next/link";
 
 function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -15,10 +15,9 @@ function isValidEmail(email: string) {
 export default function LoginPage() {
   //2 hooka
   const router = useRouter();
-  const { login } = useAuth();
+  const { refresh } = useAuth();
 
   //state forme
-  const [role, setRole] = useState<UserRole>("EMPLOYEE");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -55,14 +54,30 @@ export default function LoginPage() {
     return ok;
   }
 
-  function handleLogin() {
-    console.log("Log: izvrsava se fja handleLogin.");
+  async function handleLogin() {
     setStatusMsg("");
     if (!validate()) return;
 
-    //demo login
-    setStatusMsg("Ulogovan (demo). Prebacujem na kalendar...");
-    login({ email: email.trim(), role });
+    setStatusMsg("Ulogujem...");
+
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ email: email.trim(), password }),
+    });
+
+    const data = await res.json().catch(() => null);
+
+    if (!res.ok) {
+      setStatusMsg(data?.error ?? "Login nije uspeo.");
+      return;
+    }
+
+    // backend vraća user: { id, email, role }
+    await refresh();
+
+    setStatusMsg("Ulogovan. Prebacujem...");
     router.push("/attendance");
   }
 
@@ -91,17 +106,13 @@ export default function LoginPage() {
             placeholder="••••"
             error={passwordError}
           />
-          <div>
-            <select
-              className="select"
-              value={role}
-              onChange={(e) => setRole(e.target.value as UserRole)}
-            >
-              <option value="EMPLOYEE">EMPLOYEE</option>
-              <option value="MANAGER">MANAGER</option>
-              <option value="ADMIN">ADMIN</option>
-            </select>
-          </div>
+
+          <p className="muted">
+            Nemaš nalog?{" "}
+            <Link href="/register" style={{ textDecoration: "underline" }}>
+              Registruj se ovde
+            </Link>
+          </p>
 
           <div className="row">
             <Button onClick={handleLogin}>Login</Button>
