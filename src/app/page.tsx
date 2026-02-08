@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { useAuth } from "@/components/AuthProvider";
 
 export default function HomePage() {
   const slides = useMemo(
@@ -9,12 +10,18 @@ export default function HomePage() {
       "/slides/slide1.jpg",
       "/slides/slide2.jpg",
       "/slides/slide3.jpg",
-      "slides/slide4.jpg",
+      "/slides/slide4.jpg",
     ],
     []
   );
 
   const [index, setIndex] = useState(0);
+  const { user } = useAuth();
+
+  function greetName(user: { email?: string } | null) {
+    if (!user?.email) return "korisniče";
+    return user.email.split("@")[0];
+  }
 
   useEffect(() => {
     const t = setInterval(() => {
@@ -26,47 +33,72 @@ export default function HomePage() {
   return (
     <main>
       <div className="card" style={{ padding: 22 }}>
+        {user ? (
+          <div className="welcomeLine">
+            Dobrodošao, <b>{greetName(user)}</b>
+            <p style={{ fontSize: 14 }}>Ulogovan si kao {user.role}</p>
+          </div>
+        ) : null}
+
         <h1 className="h1" style={{ fontSize: 34 }}>
-          Evidencija zaposlenih
+          Evidencija prisustva zaposlenih
         </h1>
+
         <p className="h2" style={{ marginTop: 6 }}>
           Jednostavan sistem za praćenje dolazaka, odlazaka i aktivnosti.
         </p>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-            gap: 12,
-            marginTop: 15,
-          }}
-        >
-          <Link href="/login" className="menuCard">
-            <div className="menuTitle">Login</div>
-            <div className="muted">Uloguj se i pristupi sistemu</div>
-          </Link>
+        <div className="homeHighlights">
+          <span className="chip">Brz check-in / check-out</span>
+          <span className="chip">Plan aktivnosti (nedelja)</span>
+          <span className="chip">Uloge i dozvole</span>
+        </div>
 
-          <Link href="/attendance" className="menuCard">
-            <div className="menuTitle">Attendance</div>
-            <div className="muted">Evidentiraj dolazak/odlazak</div>
-          </Link>
+        <div className="homeFeatures">
+          <div className="featureCard">
+            <div className="featureTitle">Prisustvo</div>
+            <div className="muted">
+              Jednim klikom evidentiraš dolazak i odlazak.
+            </div>
+          </div>
 
-          <Link href="/calendar" className="menuCard">
-            <div className="menuTitle">Calendar</div>
-            <div className="muted">Pregled aktivnosti po nedelji</div>
-          </Link>
+          <div className="featureCard">
+            <div className="featureTitle">Aktivnosti</div>
+            <div className="muted">Nedeljni pregled i organizacija rada.</div>
+          </div>
 
-          <Link
-            href="/admin"
-            className="menuCard"
-            style={{ gridColumn: "span 3" }}
-          >
-            <div className="menuTitle">Admin</div>
-            <div className="muted">Upravljanje korisnicima</div>
-          </Link>
+          <div className="featureCard">
+            <div className="featureTitle">Uloge</div>
+            <div className="muted">
+              Jasne dozvole za Employee / Manager / Admin.
+            </div>
+          </div>
         </div>
       </div>
 
+      <div className="card" style={{ marginTop: 16 }}>
+        <div className="sectionTitle">O kompaniji</div>
+        <p className="muted" style={{ marginTop: 6 }}>
+          Naša kompanija pruža jednostavno rešenje za evidenciju prisustva i
+          organizaciju rada zaposlenih. Sistem omogućava uloge korisnika,
+          transparentnu istoriju dolazaka/odlazaka i pregled aktivnosti u
+          kalendaru.
+        </p>
+        <p className="muted" style={{ marginTop: 6 }}>
+          Sistem je implementiran kao moderna web aplikacija sa jasno
+          razdvojenim frontend i backend slojevima. Frontend je razvijen u
+          Next.js (React) okruženju i fokusiran je na preglednost, brzinu i
+          jednostavno korisničko iskustvo. Backend je zasnovan na API
+          arhitekturi i obezbeđuje centralizovano upravljanje korisnicima,
+          aktivnostima i evidencijom prisustva, uz strogu kontrolu pristupa po
+          ulogama (ADMIN, MANAGER, EMPLOYEE). Svi podaci se trajno čuvaju u
+          relacionoj bazi podataka, dok je komunikacija između klijenta i
+          servera realizovana preko sigurnih HTTP zahteva sa autentifikacijom.
+          Sistem je projektovan tako da omogući jednostavno proširenje
+          funkcionalnosti i prilagođavanje različitim organizacionim
+          strukturama.
+        </p>
+      </div>
       <div className="card" style={{ marginTop: 16, padding: 16 }}>
         <div className="sectionTitle" style={{ marginBottom: 10 }}>
           Galerija (slideshow)
@@ -79,51 +111,35 @@ export default function HomePage() {
             className="slideshowImg"
           />
 
-          {/* kontrole */}
-          <div className="slideshowControls">
-            <button
-              className="btn"
-              onClick={() =>
-                setIndex((i) => (i - 1 + slides.length) % slides.length)
-              }
-            >
-              ◀
-            </button>
-            <button
-              className="btn"
-              onClick={() => setIndex((i) => (i + 1) % slides.length)}
-            >
-              ▶
-            </button>
+          <button
+            className="slideArrow slideArrowLeft"
+            onClick={() =>
+              setIndex((i) => (i - 1 + slides.length) % slides.length)
+            }
+            aria-label="Previous"
+          >
+            {"<"}
+          </button>
 
-            <div className="slideshowDots">
-              {slides.map((_, i) => (
-                <button
-                  key={i}
-                  className={`dot ${i === index ? "dotActive" : ""}`}
-                  onClick={() => setIndex(i)}
-                  aria-label={`Slide ${i + 1}`}
-                />
-              ))}
-            </div>
+          <button
+            className="slideArrow slideArrowRight"
+            onClick={() => setIndex((i) => (i + 1) % slides.length)}
+            aria-label="Next"
+          >
+            {">"}
+          </button>
+
+          <div className="slideshowDots">
+            {slides.map((_, i) => (
+              <button
+                key={i}
+                className={`dot ${i === index ? "dotActive" : ""}`}
+                onClick={() => setIndex(i)}
+                aria-label={`Slide ${i + 1}`}
+              />
+            ))}
           </div>
         </div>
-      </div>
-
-      {/* ABOUT */}
-      <div className="card" style={{ marginTop: 16 }}>
-        <div className="sectionTitle">O kompaniji</div>
-        <p className="muted" style={{ marginTop: 6 }}>
-          Naša kompanija pruža jednostavno rešenje za evidenciju prisustva i
-          organizaciju rada zaposlenih. Sistem omogućava uloge korisnika,
-          transparentnu istoriju dolazaka/odlazaka i pregled aktivnosti u
-          kalendaru.
-        </p>
-        <p className="muted" style={{ marginTop: 6 }}>
-          Fokus je na pouzdanosti, brzini korišćenja i jasnom prikazu podataka,
-          tako da menadžeri imaju uvid, a zaposleni jednostavan način
-          evidencije.
-        </p>
       </div>
     </main>
   );

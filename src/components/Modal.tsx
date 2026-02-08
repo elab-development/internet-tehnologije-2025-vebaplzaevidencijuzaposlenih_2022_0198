@@ -14,7 +14,7 @@ export default function Modal({ open, title, children, onClose }: ModalProps) {
       style={{
         position: "fixed",
         inset: 0,
-        background: "rgba(0, 0, 0, 0.6)",
+        background: "rgba(15, 18, 24, 0.55)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -26,9 +26,10 @@ export default function Modal({ open, title, children, onClose }: ModalProps) {
         onClick={(e) => e.stopPropagation()}
         style={{
           width: "min(520px, 100%)",
-          borderRadius: 14,
-          border: "1px solid #333",
-          background: "rgba(255, 255, 255, 0.96)",
+          borderRadius: 16,
+          border: "1px solid rgba(215, 219, 226, 0.95)",
+          background: "rgba(246, 247, 249, 0.92)",
+          boxShadow: "0 18px 50px rgba(15, 23, 42, 0.18)",
           padding: 16,
         }}
       >
@@ -41,23 +42,25 @@ export default function Modal({ open, title, children, onClose }: ModalProps) {
             marginBottom: 12,
           }}
         >
-          <div style={{ fontWeight: 800, fontSize: 16 }}>
+          <div
+            style={{ fontWeight: 650, fontSize: 15, letterSpacing: "-0.01em" }}
+          >
             {title ?? "Modal"}
           </div>
 
           <button
             onClick={onClose}
             style={{
-              border: "1px solid #333",
-              background: "rgba(255, 255, 255, 0.96)",
+              border: "1px solid rgba(215, 219, 226, 0.95)",
+              background: "rgba(236, 239, 243, 0.95)",
               color: "inherit",
-              borderRadius: 10,
+              borderRadius: 12,
               padding: "6px 10px",
               cursor: "pointer",
-              fontWeight: 700,
+              fontWeight: 560,
             }}
           >
-            X
+            ✕
           </button>
         </div>
 

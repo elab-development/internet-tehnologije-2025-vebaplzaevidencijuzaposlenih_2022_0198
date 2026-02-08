@@ -17,7 +17,9 @@ export default function TextField({
 }: TextFieldProps) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      <label style={{ fontWeight: 700, color:"inherit" }}>{label}</label>
+      <label style={{ fontWeight: 520, color: "inherit", fontSize: 15 }}>
+        {label}
+      </label>
 
       <input
         type={type}
@@ -25,15 +27,15 @@ export default function TextField({
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
         style={{
-          padding: "10px 12px",
-          borderRadius: 8,
-          border: error ? "1px solid #b00020" : "1px solid #ccc",
-          outline: "none",
+          border: error ? "1px solid rgba(200, 60, 60, 0.70)" : undefined,
+          boxShadow: error ? "0 0 0 4px rgba(200, 60, 60, 0.10)" : undefined,
         }}
       />
 
       {error ? (
-        <span style={{ color: "#b00020", fontSize: 12 }}>{error}</span>
+        <span style={{ color: "rgba(200, 60, 60, 0.95)", fontSize: 12 }}>
+          {error}
+        </span>
       ) : null}
     </div>
   );
