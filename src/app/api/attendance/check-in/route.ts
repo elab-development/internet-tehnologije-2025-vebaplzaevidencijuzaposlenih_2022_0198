@@ -25,6 +25,12 @@ function getAuthUserIdAndRole(
   return { userId, role };
 }
 
+function isLateAfter10Local(now: Date) {
+  const hh = now.getHours();
+  const mm = now.getMinutes();
+  return hh > 10 || (hh === 10 && mm > 0);
+}
+
 // POST /api/attendance/check-in
 export async function POST(req: Request) {
   const auth = requireAuth(req);
@@ -50,13 +56,16 @@ export async function POST(req: Request) {
     );
   }
 
+  const now = new Date();
+  const statusName = isLateAfter10Local(now) ? "LATE" : "PRESENT";
+
   const statusRow = await prisma.attendanceStatus.findUnique({
-    where: { name: "PRESENT" },
+    where: { name: statusName },
     select: { id: true },
   });
   if (!statusRow) {
     return NextResponse.json(
-      { error: "AttendanceStatus 'PRESENT' not found." },
+      { error: `AttendanceStatus '${statusName}' not found.` },
       { status: 500 }
     );
   }
@@ -73,8 +82,6 @@ export async function POST(req: Request) {
       { status: 409 }
     );
   }
-
-  const now = new Date();
 
   const saved = await prisma.attendance.upsert({
     where: { userId_date: { userId: me.userId, date: day } },

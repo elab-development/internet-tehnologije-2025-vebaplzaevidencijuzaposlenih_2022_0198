@@ -5,9 +5,9 @@ export type CurrentUser = {
   role: UserRole;
 };
 export type AttendanceRecord = {
-  id: string;
-  userEmail: string;
-  date: string; // "YYYY-MM-DD"
-  checkInAt?: string; // "HH:MM"
-  checkOutAt?: string; // "HH:MM"
+  id: number | null;
+  date: string;
+  checkInAt: string | null;
+  checkOutAt: string | null;
+  status: "PRESENT" | "LATE" | "ABSENT";
 };

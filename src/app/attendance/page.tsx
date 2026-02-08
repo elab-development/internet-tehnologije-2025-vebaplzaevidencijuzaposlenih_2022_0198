@@ -19,6 +19,11 @@ function isoToHHMM(iso: string) {
   const d = new Date(iso);
   return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
 }
+function badgeClass(status: string) {
+  if (status === "PRESENT") return "badge badge-present";
+  if (status === "LATE") return "badge badge-late";
+  return "badge badge-absent";
+}
 
 export default function AttendancePage() {
   const { user } = useAuth();
@@ -67,9 +72,10 @@ export default function AttendancePage() {
       date: a.date,
       checkInAt: a.startTime ? isoToHHMM(a.startTime) : null,
       checkOutAt: a.endTime ? isoToHHMM(a.endTime) : null,
+      status: a.status,
     }));
 
-    mapped.sort((x, y) => (x.date > y.date ? 1 : -1));
+    mapped.sort((x, y) => (x.date < y.date ? 1 : -1));
 
     setRecords(mapped);
     setLoading(false);
@@ -184,17 +190,27 @@ export default function AttendancePage() {
                   <th style={{ padding: "10px 8px" }}>Datum</th>
                   <th style={{ padding: "10px 8px" }}>Dolazak</th>
                   <th style={{ padding: "10px 8px" }}>Odlazak</th>
+                  <th style={{ padding: "10px 8px" }}>Status</th>
                 </tr>
               </thead>
               <tbody>
                 {records.map((r) => (
-                  <tr key={r.id} style={{ borderBottom: "1px solid #161616" }}>
+                  <tr
+                    key={r.date}
+                    style={{ borderBottom: "1px solid #161616" }}
+                  >
                     <td style={{ padding: "10px 8px" }}>{r.date}</td>
+
                     <td style={{ padding: "10px 8px" }}>
                       {r.checkInAt ?? "-"}
                     </td>
+
                     <td style={{ padding: "10px 8px" }}>
                       {r.checkOutAt ?? "-"}
+                    </td>
+
+                    <td style={{ padding: "10px 8px" }}>
+                      <span className={badgeClass(r.status)}>{r.status}</span>
                     </td>
                   </tr>
                 ))}

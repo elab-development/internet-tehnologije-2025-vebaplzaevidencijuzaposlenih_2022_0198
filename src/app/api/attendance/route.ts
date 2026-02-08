@@ -3,12 +3,9 @@ import prismaModule from "@/lib/prisma";
 import { requireAuth } from "@/lib/auth.guard";
 
 const { prisma } = prismaModule;
-const ALLOWED_STATUSES = new Set(["PRESENT", "ABSENT", "LATE"]);
 
 function parseDateOnlyUTC(dateStr: string): Date | null {
-  //YYYY-MM-DD
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return null;
-
   const d = new Date(`${dateStr}T00:00:00.000Z`);
   return Number.isNaN(d.getTime()) ? null : d;
 }
@@ -19,23 +16,29 @@ function addDaysUTC(d: Date, days: number): Date {
   return copy;
 }
 
+function toISODateUTC(d: Date) {
+  return d.toISOString().slice(0, 10);
+}
+
+function todayUTCDateOnly(): Date {
+  const now = new Date();
+  return new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+  );
+}
+
 function getAuthUserIdAndRole(
   auth: any
 ): { userId: number; role: string } | null {
-  const userIdRaw = auth.userId; //auth.id;
-  console.log(userIdRaw);
-  const roleRaw = auth.role;
-
-  const userId = Number(userIdRaw);
-  const role = typeof roleRaw === "string" ? roleRaw : "";
-
+  const userId = Number(auth.userId);
+  const role = typeof auth.role === "string" ? auth.role : "";
   if (!Number.isInteger(userId) || userId <= 0) return null;
   if (!role) return null;
-
   return { userId, role };
 }
 
-// GET /api/attendance?from, to, [&userId=...]
+// GET /api/attendance  -> uvek vraća poslednjih 30 dana do danas (UTC date-only)
+// (ADMIN/MANAGER mogu: /api/attendance?userId=123)
 export async function GET(req: Request) {
   const auth = requireAuth(req);
   if (auth instanceof Response) return auth;
@@ -49,33 +52,10 @@ export async function GET(req: Request) {
   }
 
   const url = new URL(req.url);
-  const fromStr = url.searchParams.get("from");
-  const toStr = url.searchParams.get("to");
   const userIdParam = url.searchParams.get("userId");
 
-  if (!fromStr || !toStr) {
-    return NextResponse.json(
-      { error: "Missing query params: from, to (YYYY-MM-DD)" },
-      { status: 400 }
-    );
-  }
-
-  const from = parseDateOnlyUTC(fromStr);
-  const to = parseDateOnlyUTC(toStr);
-
-  if (!from || !to) {
-    return NextResponse.json(
-      { error: "Invalid date format. Use YYYY-MM-DD." },
-      { status: 400 }
-    );
-  }
-
-  const endExclusive = addDaysUTC(to, 1);
-
-  // EMPLOYEE moze samo svoje
-  // MANAGER/ADMIN - ako userId prosledjen gleda tog usera
+  // target user
   let targetUserId = me.userId;
-
   if (me.role === "ADMIN" || me.role === "MANAGER") {
     if (userIdParam) {
       const parsed = Number(userIdParam);
@@ -88,6 +68,11 @@ export async function GET(req: Request) {
       targetUserId = parsed;
     }
   }
+
+  // poslednjih 30 dana do danas (uključivo), date-only UTC
+  const to = todayUTCDateOnly(); // danas 00:00Z
+  const from = addDaysUTC(to, -29); // 29 dana unazad (ukupno 30 dana)
+  const endExclusive = addDaysUTC(to, 1); // [from, to+1)
 
   const attendances = await prisma.attendance.findMany({
     where: {
@@ -106,20 +91,50 @@ export async function GET(req: Request) {
     },
   });
 
-  return NextResponse.json(
-    {
-      userId: targetUserId,
-      from: fromStr,
-      to: toStr,
-      items: attendances.map((a: any) => ({
+  // mapiranje postojećih po datumu
+  const byDate = new Map<string, any>();
+  for (const a of attendances) {
+    const key = toISODateUTC(a.date);
+    byDate.set(key, a);
+  }
+
+  // popunjena lista od from..to
+  const items: any[] = [];
+  for (let i = 0; i < 30; i++) {
+    const d = addDaysUTC(from, i);
+    const dateStr = toISODateUTC(d);
+
+    const a = byDate.get(dateStr);
+    if (a) {
+      items.push({
         id: a.id,
-        date: a.date.toISOString().slice(0, 10),
+        date: dateStr,
         startTime: a.startTime ? a.startTime.toISOString() : null,
         endTime: a.endTime ? a.endTime.toISOString() : null,
         totalWorkMinutes: a.totalWorkMinutes ?? null,
         userId: a.userId,
-        status: a.status.name,
-      })),
+        status: a.status?.name ?? "PRESENT",
+      });
+    } else {
+      // nema zapisa u bazi -> ABSENT
+      items.push({
+        id: null,
+        date: dateStr,
+        startTime: null,
+        endTime: null,
+        totalWorkMinutes: null,
+        userId: targetUserId,
+        status: "ABSENT",
+      });
+    }
+  }
+
+  return NextResponse.json(
+    {
+      userId: targetUserId,
+      from: toISODateUTC(from),
+      to: toISODateUTC(to),
+      items,
     },
     { status: 200 }
   );
