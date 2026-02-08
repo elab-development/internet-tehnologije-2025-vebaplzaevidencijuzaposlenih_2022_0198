@@ -5,131 +5,377 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import Button from "@/components/Button";
 import TextField from "@/components/TextField";
-import {
-  getUsers,
-  saveUsers,
-  updateUser,
-  upsertUser,
-  type AdminUser,
-  type Role,
-} from "@/lib/adminStore";
+import Modal from "@/components/Modal";
 
-function formatDate(ts: number) {
-  const d = new Date(ts);
-  // simple + stable
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
-    2,
-    "0"
-  )}-${String(d.getDate()).padStart(2, "0")}`;
+type Role = "EMPLOYEE" | "MANAGER" | "ADMIN";
+
+type UserDTO = {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: Role;
+  createdAt: string;
+  lastLoginAt: string | null;
+};
+
+function fullName(u: Pick<UserDTO, "firstName" | "lastName">) {
+  return `${u.firstName} ${u.lastName}`.trim();
 }
 
-function newId() {
-  return `u_${Math.random().toString(16).slice(2)}_${Date.now()}`;
+function fmtDateTime(iso: string | null) {
+  if (!iso) return "-";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "-";
+  return d.toLocaleString("sr-RS");
+}
+
+function isEmail(s: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
 }
 
 export default function AdminPage() {
   const { user } = useAuth();
   const router = useRouter();
 
-  // auth guard
+  // guard
   useEffect(() => {
     if (!user) router.push("/login");
     else if (user.role !== "ADMIN") router.push("/calendar");
   }, [user, router]);
 
-  // data
-  const [users, setUsers] = useState<AdminUser[]>([]);
-  const [query, setQuery] = useState("");
+  const [allUsers, setAllUsers] = useState<UserDTO[]>([]);
+  const [loading, setLoading] = useState(true);
   const [statusMsg, setStatusMsg] = useState("");
+  const [busy, setBusy] = useState(false);
 
-  // create demo user form
-  const [newName, setNewName] = useState("");
-  const [newEmail, setNewEmail] = useState("");
-  const [newRole, setNewRole] = useState<Role>("EMPLOYEE");
+  const [query, setQuery] = useState("");
+  const qNorm = query.trim().toLowerCase();
+  const [statusType, setStatusType] = useState<"info" | "error">("info");
 
-  // load once on mount
+  // modals
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [editUser, setEditUser] = useState<UserDTO | null>(null);
+  const [deleteUser, setDeleteUser] = useState<UserDTO | null>(null);
+  const [resetPwUser, setResetPwUser] = useState<UserDTO | null>(null);
+
+  // forms
+  const [formFirst, setFormFirst] = useState("");
+  const [formLast, setFormLast] = useState("");
+  const [formEmail, setFormEmail] = useState("");
+  const [formRole, setFormRole] = useState<Role>("EMPLOYEE");
+
+  const [pwValue, setPwValue] = useState("");
+
   useEffect(() => {
-    const u = getUsers();
-    setUsers(u);
-  }, []);
+    if (!statusMsg) return;
+
+    const t = setTimeout(() => {
+      setStatusMsg("");
+    }, 5000);
+
+    return () => clearTimeout(t);
+  }, [statusMsg]);
+
+  async function loadUsers() {
+    setLoading(true);
+
+    const res = await fetch("/api/users?mode=admin", {
+      method: "GET",
+      credentials: "include",
+    });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      setStatusType("error");
+      setStatusMsg(data?.error ?? "Greška pri učitavanju korisnika.");
+      setAllUsers([]);
+      setLoading(false);
+      return;
+    }
+
+    const data = await res.json();
+    setAllUsers((data.users ?? []) as UserDTO[]);
+    setStatusType("info");
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    if (!user || user.role !== "ADMIN") return;
+    loadUsers();
+  }, [user?.role]);
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return users;
-    return users.filter((u) => {
+    if (!qNorm) return allUsers;
+    return allUsers.filter((u) => {
+      const name = fullName(u).toLowerCase();
       return (
-        u.email.toLowerCase().includes(q) ||
-        u.name.toLowerCase().includes(q) ||
-        u.role.toLowerCase().includes(q)
+        name.includes(qNorm) ||
+        u.firstName.toLowerCase().includes(qNorm) ||
+        u.lastName.toLowerCase().includes(qNorm) ||
+        u.email.toLowerCase().includes(qNorm)
       );
     });
-  }, [users, query]);
+  }, [allUsers, qNorm]);
+
+  const employees = useMemo(
+    () => filtered.filter((u) => u.role === "EMPLOYEE"),
+    [filtered]
+  );
+  const managers = useMemo(
+    () => filtered.filter((u) => u.role === "MANAGER"),
+    [filtered]
+  );
+
+  const counts = useMemo(() => {
+    const total = allUsers.length;
+    return { total };
+  }, [allUsers]);
+
+  function openAdd() {
+    setStatusMsg("");
+    setFormFirst("");
+    setFormLast("");
+    setFormEmail("");
+    setFormRole("EMPLOYEE");
+    setIsAddOpen(true);
+  }
+
+  function openEdit(u: UserDTO) {
+    setStatusMsg("");
+    setFormFirst(u.firstName);
+    setFormLast(u.lastName);
+    setFormEmail(u.email);
+    setFormRole(u.role);
+    setEditUser(u);
+  }
+
+  async function submitAdd() {
+    setBusy(true);
+    setStatusMsg("");
+    try {
+      const firstName = formFirst.trim();
+      const lastName = formLast.trim();
+      const email = formEmail.trim().toLowerCase();
+
+      if (!firstName || !lastName || !email) {
+        setStatusType("error");
+        setStatusMsg("Ime, prezime i email su obavezni.");
+        return;
+      }
+      if (!isEmail(email)) {
+        setStatusType("error");
+        setStatusMsg("Email format nije ispravan.");
+        return;
+      }
+      if (pwValue.trim().length < 6) {
+        setStatusType("error");
+        setStatusMsg("Lozinka mora imati bar 6 karaktera.");
+        return;
+      }
+
+      const res = await fetch("/api/users", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          firstName,
+          lastName,
+          email,
+          role: formRole,
+          password: pwValue.trim(),
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        setStatusType("error");
+        setStatusMsg(data?.error ?? "Greška pri kreiranju korisnika.");
+        return;
+      }
+
+      setIsAddOpen(false);
+      setStatusType("info");
+      setStatusMsg("Korisnik kreiran.");
+      setPwValue("");
+      await loadUsers();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function submitEdit() {
+    if (!editUser) return;
+    setBusy(true);
+    setStatusMsg("");
+    try {
+      const firstName = formFirst.trim();
+      const lastName = formLast.trim();
+      const email = formEmail.trim().toLowerCase();
+
+      if (!firstName || !lastName || !email) {
+        setStatusType("error");
+        setStatusMsg("Ime, prezime i email su obavezni.");
+        return;
+      }
+      if (!isEmail(email)) {
+        setStatusType("error");
+        setStatusMsg("Email format nije ispravan.");
+        return;
+      }
+
+      const res = await fetch(`/api/users/${editUser.id}`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          firstName,
+          lastName,
+          email,
+          role: formRole,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        setStatusType("error");
+        setStatusMsg(data?.error ?? "Greška pri izmeni korisnika.");
+        return;
+      }
+      setStatusType("info");
+      setStatusMsg("Korisnik izmenjen.");
+      setEditUser(null);
+      await loadUsers();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function confirmDelete() {
+    if (!deleteUser) return;
+    setStatusMsg("");
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/users/${deleteUser.id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        setStatusType("error");
+        setStatusMsg(data?.error ?? "Greška pri brisanju korisnika.");
+        return;
+      }
+      setStatusType("info");
+      setStatusMsg("Korisnik izbrisan.");
+      setDeleteUser(null);
+      await loadUsers();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function submitResetPassword() {
+    if (!resetPwUser) return;
+    setBusy(true);
+    setStatusMsg("");
+    try {
+      const pw = pwValue.trim();
+      if (pw.length < 6) {
+        setStatusType("error");
+        setStatusMsg("Lozinka mora imati bar 6 karaktera.");
+        return;
+      }
+
+      const res = await fetch(`/api/users/${resetPwUser.id}/reset-password`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: pw }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        setStatusType("error");
+        setStatusMsg(data?.error ?? "Greška pri resetu lozinke.");
+        return;
+      }
+
+      setPwValue("");
+      setResetPwUser(null);
+      setStatusType("info");
+      setStatusMsg("Lozinka resetovana.");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   if (!user) return null;
   if (user.role !== "ADMIN") return null;
 
-  function handleToggleActive(id: string, nextActive: boolean) {
-    setStatusMsg("");
-    const next = updateUser(id, { active: nextActive });
-    setUsers(next);
-    setStatusMsg(nextActive ? "Korisnik aktiviran." : "Korisnik deaktiviran.");
-  }
+  function UserCardRow({ u }: { u: UserDTO }) {
+    return (
+      <div
+        className="card"
+        style={{
+          marginTop: 10,
+          padding: 12,
+          display: "grid",
+          gap: 8,
+        }}
+      >
+        <div
+          style={{ display: "flex", justifyContent: "space-between", gap: 10 }}
+        >
+          <div style={{ minWidth: 0 }}>
+            <div
+              style={{
+                fontWeight: 600,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                letterSpacing: "-0.01em",
+              }}
+            >
+              {fullName(u)}
+            </div>
+            <div
+              className="muted"
+              style={{ overflow: "hidden", textOverflow: "ellipsis" }}
+            >
+              {u.email}
+            </div>
+          </div>
 
-  function handleChangeRole(id: string, role: Role) {
-    setStatusMsg("");
-    const next = updateUser(id, { role });
-    setUsers(next);
-    setStatusMsg("Uloga izmenjena.");
-  }
+          <div style={{ textAlign: "right" }}>
+            <div className="muted" style={{ marginTop: 2, fontSize: 12 }}>
+              Last login: {fmtDateTime(u.lastLoginAt)}
+            </div>
+          </div>
+        </div>
 
-  function handleDelete(id: string) {
-    setStatusMsg("");
-    const next = users.filter((u) => u.id !== id);
-    saveUsers(next);
-    setUsers(next);
-    setStatusMsg("Korisnik obrisan (demo).");
-  }
-
-  function handleCreate() {
-    setStatusMsg("");
-    const name = newName.trim();
-    const email = newEmail.trim().toLowerCase();
-    if (!name || !email) {
-      setStatusMsg("Ime i email su obavezni.");
-      return;
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setStatusMsg("Email format nije ispravan.");
-      return;
-    }
-    if (users.some((u) => u.email.toLowerCase() === email)) {
-      setStatusMsg("Korisnik sa tim email-om već postoji.");
-      return;
-    }
-
-    const created: AdminUser = {
-      id: newId(),
-      name,
-      email,
-      role: newRole,
-      active: true,
-      createdAt: Date.now(),
-    };
-
-    const next = upsertUser(created);
-    setUsers(next);
-    setNewName("");
-    setNewEmail("");
-    setNewRole("EMPLOYEE");
-    setStatusMsg("Korisnik kreiran (demo).");
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <Button onClick={() => openEdit(u)}>Izmeni</Button>
+          <Button onClick={() => setDeleteUser(u)}>Obriši</Button>
+          <Button
+            onClick={() => {
+              setResetPwUser(u);
+              setPwValue("");
+            }}
+          >
+            Resetuj password
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   return (
     <main>
       <h1 className="h1">Admin</h1>
-      <p className="h2">Upravljanje korisnicima (demo, localStorage).</p>
+      <p className="h2">Upravljanje korisnicima (DB).</p>
 
-      {/* Search */}
+      {/* Top bar */}
       <div className="card" style={{ marginTop: 16 }}>
         <div
           style={{
@@ -139,167 +385,317 @@ export default function AdminPage() {
             flexWrap: "wrap",
           }}
         >
-          <div style={{ flex: 1, minWidth: 240 }}>
+          <div style={{ flex: 1, minWidth: 260 }}>
             <TextField
               label="Pretraga"
               value={query}
               onChange={setQuery}
-              placeholder="email, ime ili role…"
+              placeholder="Ime / prezime / email…"
             />
           </div>
-          <div style={{ paddingBottom: 2 }} className="muted">
-            Ukupno: <b>{users.length}</b> | Prikaz: <b>{filtered.length}</b>
+
+          <div className="muted" style={{ paddingBottom: 2 }}>
+            <b>Ukupno:</b> {counts.total}
+          </div>
+
+          <div style={{ alignSelf: "flex-end" }}>
+            <Button onClick={openAdd}>Kreiraj korisnika</Button>
           </div>
         </div>
 
         {statusMsg ? (
-          <p className="muted" style={{ marginTop: 10 }}>
+          <div
+            className={`notice ${statusType === "error" ? "notice-error" : ""}`}
+            style={{ marginTop: 10 }}
+          >
             {statusMsg}
-          </p>
+          </div>
         ) : null}
       </div>
 
-      {/* Create user */}
-      <div className="card" style={{ marginTop: 16 }}>
-        <h2 style={{ margin: 0, fontSize: 16 }}>Dodaj korisnika (demo)</h2>
-        <div
-          style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 12 }}
-        >
-          <div style={{ flex: 1, minWidth: 220 }}>
-            <TextField
-              label="Ime"
-              value={newName}
-              onChange={setNewName}
-              placeholder="npr. Marko Marković"
-            />
+      <div
+        style={{
+          marginTop: 16,
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: 16,
+        }}
+      >
+        <div className="card">
+          <div
+            style={{ display: "flex", justifyContent: "space-between", gap: 8 }}
+          >
+            <h2 className="sectionTitle" style={{ margin: 0 }}>
+              Radnici
+            </h2>
+            <span className="muted">
+              Prikaz: <b>{employees.length}</b>
+            </span>
           </div>
-          <div style={{ flex: 1, minWidth: 220 }}>
+
+          {loading ? (
+            <div className="muted" style={{ marginTop: 12 }}>
+              Učitavam…
+            </div>
+          ) : employees.length === 0 ? (
+            <div className="muted" style={{ marginTop: 12 }}>
+              Nema rezultata.
+            </div>
+          ) : (
+            <div style={{ marginTop: 12 }}>
+              {employees.map((u) => (
+                <UserCardRow key={u.id} u={u} />
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="card">
+          <div
+            style={{ display: "flex", justifyContent: "space-between", gap: 8 }}
+          >
+            <h2 className="sectionTitle" style={{ margin: 0 }}>
+              Menadžeri
+            </h2>
+            <span className="muted">
+              Prikaz: <b>{managers.length}</b>
+            </span>
+          </div>
+
+          {loading ? (
+            <div className="muted" style={{ marginTop: 12 }}>
+              Učitavam…
+            </div>
+          ) : managers.length === 0 ? (
+            <div className="muted" style={{ marginTop: 12 }}>
+              Nema rezultata.
+            </div>
+          ) : (
+            <div style={{ marginTop: 12 }}>
+              {managers.map((u) => (
+                <UserCardRow key={u.id} u={u} />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ADD modal */}
+      {isAddOpen ? (
+        <Modal
+          open={isAddOpen}
+          title="Add user"
+          onClose={() => {
+            setIsAddOpen(false);
+            setPwValue("");
+          }}
+        >
+          <div style={{ display: "grid", gap: 12 }}>
+            {statusMsg ? (
+              <div
+                className={`notice ${
+                  statusType === "error" ? "notice-error" : ""
+                }`}
+              >
+                {statusMsg}
+              </div>
+            ) : null}
+
+            <TextField label="Ime" value={formFirst} onChange={setFormFirst} />
+            <TextField
+              label="Prezime"
+              value={formLast}
+              onChange={setFormLast}
+            />
             <TextField
               label="Email"
-              value={newEmail}
-              onChange={setNewEmail}
-              placeholder="npr. marko@mail.com"
+              value={formEmail}
+              onChange={setFormEmail}
             />
-          </div>
 
-          <div style={{ minWidth: 180 }}>
-            <label style={{ fontWeight: 700 }}>Role</label>
-            <select
-              value={newRole}
-              onChange={(e) => setNewRole(e.target.value as Role)}
-              style={{
-                width: "100%",
-                marginTop: 6,
-                padding: "10px 12px",
-                borderRadius: 8,
-                border: "1px solid #333",
-                background: "#0b0b0b",
-                color: "inherit",
-              }}
-            >
-              <option value="EMPLOYEE">EMPLOYEE</option>
-              <option value="MANAGER">MANAGER</option>
-              <option value="ADMIN">ADMIN</option>
-            </select>
-          </div>
-
-          <div style={{ alignSelf: "flex-end" }}>
-            <Button onClick={handleCreate}>Create</Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Users table */}
-      <div className="card" style={{ marginTop: 16 }}>
-        <h2 style={{ margin: 0, fontSize: 16 }}>Korisnici</h2>
-
-        <div style={{ overflowX: "auto", marginTop: 12 }}>
-          <table
-            style={{ width: "100%", borderCollapse: "collapse", minWidth: 720 }}
-          >
-            <thead>
-              <tr
-                style={{ textAlign: "left", borderBottom: "1px solid #2a2a2a" }}
+            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+              <label style={{ fontWeight: 700 }}>Uloga</label>
+              <select
+                value={formRole}
+                onChange={(e) => setFormRole(e.target.value as Role)}
+                className="select"
               >
-                <th style={{ padding: "10px 8px" }}>Ime</th>
-                <th style={{ padding: "10px 8px" }}>Email</th>
-                <th style={{ padding: "10px 8px" }}>Role</th>
-                <th style={{ padding: "10px 8px" }}>Status</th>
-                <th style={{ padding: "10px 8px" }}>Kreiran</th>
-                <th style={{ padding: "10px 8px" }}>Akcije</th>
-              </tr>
-            </thead>
+                <option value="EMPLOYEE">EMPLOYEE</option>
+                <option value="MANAGER">MANAGER</option>
+                <option value="ADMIN">ADMIN</option>
+              </select>
+            </div>
 
-            <tbody>
-              {filtered.map((u) => (
-                <tr key={u.id} style={{ borderBottom: "1px solid #161616" }}>
-                  <td style={{ padding: "10px 8px" }}>{u.name}</td>
-                  <td style={{ padding: "10px 8px" }}>{u.email}</td>
+            <TextField
+              label="Lozinka (inicijalna)"
+              value={pwValue}
+              onChange={setPwValue}
+              placeholder="min 6 karaktera"
+            />
 
-                  <td style={{ padding: "10px 8px" }}>
-                    <select
-                      value={u.role}
-                      onChange={(e) =>
-                        handleChangeRole(u.id, e.target.value as Role)
-                      }
-                      style={{
-                        padding: "8px 10px",
-                        borderRadius: 8,
-                        border: "1px solid #333",
-                        background: "#0b0b0b",
-                        color: "inherit",
-                      }}
-                    >
-                      <option value="EMPLOYEE">EMPLOYEE</option>
-                      <option value="MANAGER">MANAGER</option>
-                      <option value="ADMIN">ADMIN</option>
-                    </select>
-                  </td>
+            <div
+              style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}
+            >
+              <Button
+                onClick={() => {
+                  setIsAddOpen(false);
+                  setPwValue("");
+                }}
+              >
+                Poništi
+              </Button>
+              <Button onClick={submitAdd}>Create</Button>
+            </div>
+          </div>
+        </Modal>
+      ) : null}
 
-                  <td style={{ padding: "10px 8px" }}>
-                    {u.active ? (
-                      <span style={{ fontWeight: 700 }}>ACTIVE</span>
-                    ) : (
-                      <span className="muted">DEACTIVATED</span>
-                    )}
-                  </td>
+      {/* EDIT modal */}
+      {editUser ? (
+        <Modal
+          open={!!editUser}
+          title="Edit user"
+          onClose={() => setEditUser(null)}
+        >
+          <div style={{ display: "grid", gap: 12 }}>
+            {statusMsg ? (
+              <div
+                className={`notice ${
+                  statusType === "error" ? "notice-error" : ""
+                }`}
+              >
+                {statusMsg}
+              </div>
+            ) : null}
 
-                  <td style={{ padding: "10px 8px" }} className="muted">
-                    {formatDate(u.createdAt)}
-                  </td>
+            <div className="muted">
+              ID: <b>{editUser.id}</b> | Kreiran:{" "}
+              <b>{fmtDateTime(editUser.createdAt)}</b>
+            </div>
 
-                  <td style={{ padding: "10px 8px" }}>
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                      {u.active ? (
-                        <Button onClick={() => handleToggleActive(u.id, false)}>
-                          Deactivate
-                        </Button>
-                      ) : (
-                        <Button onClick={() => handleToggleActive(u.id, true)}>
-                          Activate
-                        </Button>
-                      )}
-                      <Button onClick={() => handleDelete(u.id)}>Delete</Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+            <TextField label="Ime" value={formFirst} onChange={setFormFirst} />
+            <TextField
+              label="Prezime"
+              value={formLast}
+              onChange={setFormLast}
+            />
+            <TextField
+              label="Email"
+              value={formEmail}
+              onChange={setFormEmail}
+            />
 
-              {filtered.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={6}
-                    style={{ padding: "12px 8px" }}
-                    className="muted"
-                  >
-                    Nema rezultata za pretragu.
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
-        </div>
-      </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+              <label>Uloga</label>
+              <select
+                value={formRole}
+                onChange={(e) => setFormRole(e.target.value as Role)}
+                className="select"
+              >
+                <option value="EMPLOYEE">EMPLOYEE</option>
+                <option value="MANAGER">MANAGER</option>
+                <option value="ADMIN">ADMIN</option>
+              </select>
+            </div>
+
+            <div
+              style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}
+            >
+              <Button onClick={() => setEditUser(null)}>Cancel</Button>
+              <Button onClick={submitEdit}>Save</Button>
+            </div>
+          </div>
+        </Modal>
+      ) : null}
+
+      {/* DELETE confirm modal */}
+      {deleteUser ? (
+        <Modal
+          open={!!deleteUser}
+          title="Potvrdi brisanje"
+          onClose={() => setDeleteUser(null)}
+        >
+          <div style={{ display: "grid", gap: 12 }}>
+            {statusMsg ? (
+              <div
+                className={`notice ${
+                  statusType === "error" ? "notice-error" : ""
+                }`}
+              >
+                {statusMsg}
+              </div>
+            ) : null}
+
+            <div>
+              Da li si siguran da želiš da obrišeš korisnika:
+              <div style={{ marginTop: 8 }}>
+                <b>{fullName(deleteUser)}</b> ({deleteUser.email})
+              </div>
+              <div className="muted" style={{ marginTop: 6 }}>
+                Ako postoje aktivnosti/prisustva, brisanje može biti blokirano —
+                u tom slučaju deaktiviraj.
+              </div>
+            </div>
+
+            <div
+              style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}
+            >
+              <Button onClick={() => setDeleteUser(null)}>Cancel</Button>
+              <Button onClick={confirmDelete}>Delete</Button>
+            </div>
+          </div>
+        </Modal>
+      ) : null}
+
+      {/* RESET PASSWORD modal */}
+      {resetPwUser ? (
+        <Modal
+          open={!!resetPwUser}
+          title="Reset password"
+          onClose={() => {
+            setResetPwUser(null);
+            setPwValue("");
+          }}
+        >
+          <div style={{ display: "grid", gap: 12 }}>
+            {statusMsg ? (
+              <div
+                className={`notice ${
+                  statusType === "error" ? "notice-error" : ""
+                }`}
+              >
+                {statusMsg}
+              </div>
+            ) : null}
+
+            <div>
+              Reset lozinke za: <b>{fullName(resetPwUser)}</b>
+              <div className="muted">{resetPwUser.email}</div>
+            </div>
+
+            <TextField
+              label="Nova lozinka"
+              value={pwValue}
+              onChange={setPwValue}
+              placeholder="min 6 karaktera"
+            />
+
+            <div
+              style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}
+            >
+              <Button
+                onClick={() => {
+                  setResetPwUser(null);
+                  setPwValue("");
+                }}
+              >
+                Cancel
+              </Button>
+              <Button onClick={submitResetPassword}>Reset</Button>
+            </div>
+          </div>
+        </Modal>
+      ) : null}
     </main>
   );
 }
