@@ -7,7 +7,7 @@ import TextField from "@/components/TextField";
 import { addDays, startOfWeekMonday, toISODate } from "@/lib/date";
 import { useAuth } from "@/components/AuthProvider";
 
-const dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+const dayNames = ["Pon", "Uto", "Sre", "Čet", "Pet"];
 
 type Activity = {
   id: number;
@@ -41,6 +41,17 @@ function isoToHHMM(iso: string) {
   return `${hh}:${mm}`;
 }
 
+function isValidISODate(d: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return false;
+  const dt = new Date(`${d}T00:00:00.000Z`);
+  return !Number.isNaN(dt.getTime());
+}
+
+function safeToISOString(d: Date) {
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toISOString();
+}
+
 export default function CalendarPage() {
   const { user } = useAuth();
   const canEditActivities = user?.role === "MANAGER" || user?.role === "ADMIN";
@@ -53,6 +64,18 @@ export default function CalendarPage() {
   const weekEndStr = toISODate(addDays(weekStart, 4));
 
   const [activities, setActivities] = useState<Activity[]>([]);
+  const [statusMsg, setStatusMsg] = useState("");
+  const [statusType, setStatusType] = useState<"info" | "error">("info");
+  const [busy, setBusy] = useState(false);
+
+  const [exportBusy, setExportBusy] = useState(false);
+  const [exportUserId, setExportUserId] = useState<string>("");
+
+  useEffect(() => {
+    if (!statusMsg) return;
+    const t = setTimeout(() => setStatusMsg(""), 5000);
+    return () => clearTimeout(t);
+  }, [statusMsg]);
 
   const [open, setOpen] = useState(false);
   const [formDate, setFormDate] = useState("");
@@ -71,41 +94,64 @@ export default function CalendarPage() {
   }, [weekStart]);
 
   async function loadWeek() {
-    const res = await fetch(
-      `/api/activities?from=${weekStartStr}&to=${weekEndStr}`,
-      { credentials: "include" }
-    );
-    const data = await res.json().catch(() => null);
+    try {
+      const res = await fetch(
+        `/api/activities?from=${weekStartStr}&to=${weekEndStr}`,
+        { credentials: "include" }
+      );
+      const data = await res.json().catch(() => null);
 
-    if (!res.ok) {
-      console.error("GET /api/activities failed:", data);
+      if (!res.ok) {
+        setStatusType("error");
+        setStatusMsg(data?.error ?? "Greška pri učitavanju aktivnosti.");
+        setActivities([]);
+        return;
+      }
+
+      const items: Activity[] = (data?.activities ?? []).map((a: any) => ({
+        ...a,
+        date: a.date?.toString().slice(0, 10),
+        startTime: a.startTime,
+        endTime: a.endTime,
+      }));
+
+      setActivities(items);
+    } catch {
+      setStatusType("error");
+      setStatusMsg("Greška pri učitavanju aktivnosti.");
       setActivities([]);
-      return;
     }
-
-    const items: Activity[] = (data?.activities ?? []).map((a: any) => ({
-      ...a,
-      date: a.date?.toString().slice(0, 10),
-      startTime: a.startTime,
-      endTime: a.endTime,
-    }));
-
-    setActivities(items);
   }
 
   async function loadUsers() {
     if (!canEditActivities) return;
 
-    const res = await fetch("/api/users", { credentials: "include" });
-    const data = await res.json().catch(() => null);
+    try {
+      const res = await fetch("/api/users", { credentials: "include" });
+      const data = await res.json().catch(() => null);
 
-    if (!res.ok) {
-      console.error("GET /api/users failed:", data);
+      if (!res.ok) {
+        setStatusType("error");
+        setStatusMsg(data?.error ?? "Greška pri učitavanju korisnika.");
+        setUsers([]);
+        return;
+      }
+
+      const loaded = data?.users ?? [];
+      setUsers(loaded);
+
+      if (!exportUserId && loaded.length > 0) {
+        setExportUserId(String(loaded[0].id));
+      }
+
+      if (!exportUserId && loaded.length > 0) {
+        setExportUserId(String(loaded[0].id));
+      }
+    } catch {
+      setStatusType("error");
+      setStatusMsg("Greška pri učitavanju korisnika.");
       setUsers([]);
-      return;
     }
-
-    setUsers(data?.users ?? []);
   }
 
   useEffect(() => {
@@ -156,6 +202,8 @@ export default function CalendarPage() {
   function validateForm() {
     if (canEditActivities && !userId) return "Moraš da izabereš korisnika.";
     if (!formDate) return "Datum je obavezan.";
+    if (!isValidISODate(formDate))
+      return "Datum mora biti validan i u formatu YYYY-MM-DD.";
     if (!title.trim()) return "Naziv aktivnosti je obavezan.";
     if (!isValidTime(start) || !isValidTime(end))
       return "Vreme mora biti u formatu HH:mm.";
@@ -170,96 +218,176 @@ export default function CalendarPage() {
       setErr(msg);
       return;
     }
+    setBusy(true);
+    setErr("");
 
-    const startISO = new Date(`${formDate}T${start}:00`).toISOString();
-    const endISO = new Date(`${formDate}T${end}:00`).toISOString();
+    const startDateObj = new Date(`${formDate}T${start}:00`);
+    const endDateObj = new Date(`${formDate}T${end}:00`);
 
-    if (editingId) {
-      const res = await fetch(`/api/activities/${editingId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          name: title.trim(),
-          description: null,
-          date: formDate,
-          startTime: startISO,
-          endTime: endISO,
-          userId: userId ? Number(userId) : undefined,
-        }),
-      });
+    const startISO = safeToISOString(startDateObj);
+    const endISO = safeToISOString(endDateObj);
 
-      const data = await res.json().catch(() => null);
-      if (!res.ok) {
-        setErr(data?.error ?? "Update failed");
-        return;
-      }
-    } else {
-      const res = await fetch(`/api/activities`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          name: title.trim(),
-          description: null,
-          date: formDate,
-          startTime: startISO,
-          endTime: endISO,
-          userId: userId ? Number(userId) : undefined,
-        }),
-      });
-
-      const data = await res.json().catch(() => null);
-      if (!res.ok) {
-        setErr(data?.error ?? "Create failed");
-        return;
-      }
-    }
-
-    setOpen(false);
-    await loadWeek();
-  }
-
-  async function handleDelete(id: number) {
-    const res = await fetch(`/api/activities/${id}`, {
-      method: "DELETE",
-      credentials: "include",
-    });
-
-    if (!res.ok) {
-      const data = await res.json().catch(() => null);
-      console.error("Delete failed:", data);
+    if (!startISO || !endISO) {
+      setErr("Datum/vreme nije validno. Proveri unos.");
       return;
     }
 
-    await loadWeek();
+    try {
+      if (editingId) {
+        const res = await fetch(`/api/activities/${editingId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            name: title.trim(),
+            description: null,
+            date: formDate,
+            startTime: startISO,
+            endTime: endISO,
+            userId: userId ? Number(userId) : undefined,
+          }),
+        });
+
+        const data = await res.json().catch(() => null);
+        if (!res.ok) {
+          setErr(data?.error ?? "Update failed");
+          return;
+        }
+      } else {
+        const res = await fetch(`/api/activities`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            name: title.trim(),
+            description: null,
+            date: formDate,
+            startTime: startISO,
+            endTime: endISO,
+            userId: userId ? Number(userId) : undefined,
+          }),
+        });
+
+        const data = await res.json().catch(() => null);
+        if (!res.ok) {
+          setErr(data?.error ?? "Greska");
+          return;
+        }
+      }
+
+      setOpen(false);
+      setStatusType("info");
+      setStatusMsg(editingId ? "Aktivnost izmenjena." : "Aktivnost dodata.");
+
+      await loadWeek();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleDelete(id: number) {
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/activities/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        setStatusType("error");
+        setStatusMsg(data?.error ?? "Greška pri brisanju aktivnosti.");
+        return;
+      }
+
+      setStatusType("info");
+      setStatusMsg("Aktivnost obrisana.");
+      await loadWeek();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleExportICS() {
+    try {
+      setExportBusy(true);
+
+      let url = `/api/activities/ics?from=${weekStartStr}&to=${weekEndStr}`;
+
+      //samo admin i manager smeju da biraju drugog korisnika
+      if (canEditActivities && exportUserId) {
+        url += `&userId=${encodeURIComponent(exportUserId)}`;
+      }
+
+      const res = await fetch(url, { credentials: "include" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        setStatusType("error");
+        setStatusMsg(data?.error ?? "Greška pri exportu .ics fajla.");
+        return;
+      }
+
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = objectUrl;
+
+      const suffix =
+        canEditActivities && exportUserId ? `_user${exportUserId}` : "";
+      a.download = `calendar_${weekStartStr}_${weekEndStr}${suffix}.ics`;
+
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+
+      URL.revokeObjectURL(objectUrl);
+
+      setStatusType("info");
+      setStatusMsg("ICS fajl je preuzet.");
+    } catch {
+      setStatusType("error");
+      setStatusMsg("Greška pri exportu .ics fajla.");
+    } finally {
+      setExportBusy(false);
+    }
   }
 
   return (
     <main>
-      <h1 className="h1">Calendar</h1>
+      <h1 className="h1">Kalendar Aktivnosti</h1>
       <p className="h2">Pregled aktivnosti tokom radne nedelje (pon–pet).</p>
 
       <div className="weekHeader">
         <div className="row">
           <Button onClick={() => setWeekStart(addDays(weekStart, -7))}>
-            Prev week
+            Prošla ned.
           </Button>
           <Button onClick={() => setWeekStart(startOfWeekMonday(new Date()))}>
-            This week
+            Trenutna ned.
           </Button>
           <Button onClick={() => setWeekStart(addDays(weekStart, 7))}>
-            Next week
+            Sledeca ned.
           </Button>
+
           {canEditActivities ? (
-            <Button onClick={() => openAddModal()}>+ Add activity</Button>
+            <Button onClick={() => openAddModal()}>+ Dodaj aktivnost</Button>
           ) : null}
         </div>
 
         <span className="pill">
-          Week: <strong>{weekStartStr}</strong> → <strong>{weekEndStr}</strong>
+          Nedelja: <strong>{weekStartStr}</strong> →{" "}
+          <strong>{weekEndStr}</strong>
         </span>
       </div>
+      {statusMsg ? (
+        <div
+          className={`notice ${statusType === "error" ? "notice-error" : ""}`}
+        >
+          {statusMsg}
+        </div>
+      ) : null}
 
       <div className="weekGrid">
         {days.map((d, idx) => {
@@ -273,12 +401,12 @@ export default function CalendarPage() {
                   {dayNames[idx]} <span className="muted">({dateStr})</span>
                 </div>
                 {canEditActivities ? (
-                  <Button onClick={() => openAddModal(dateStr)}>Add</Button>
+                  <Button onClick={() => openAddModal(dateStr)}>Dodaj</Button>
                 ) : null}
               </div>
 
               {list.length === 0 ? (
-                <div className="muted">No activities.</div>
+                <div className="muted">Nema aktivnosti.</div>
               ) : (
                 list.map((a) => (
                   <div key={a.id} className="eventCard">
@@ -290,7 +418,7 @@ export default function CalendarPage() {
 
                     {canEditActivities ? (
                       <div className="muted" style={{ fontSize: 12 }}>
-                        User: <strong>{ownerLabel(a)}</strong>
+                        Korisnik: <strong>{ownerLabel(a)}</strong>
                       </div>
                     ) : null}
 
@@ -299,9 +427,12 @@ export default function CalendarPage() {
                         className="modalActions"
                         style={{ justifyContent: "flex-start" }}
                       >
-                        <Button onClick={() => openEditModal(a)}>Edit</Button>
-                        <Button onClick={() => handleDelete(a.id)}>
-                          Delete
+                        <Button onClick={() => openEditModal(a)}>Izmeni</Button>
+                        <Button
+                          disabled={busy}
+                          onClick={() => handleDelete(a.id)}
+                        >
+                          Obriši
                         </Button>
                       </div>
                     ) : null}
@@ -311,6 +442,51 @@ export default function CalendarPage() {
             </section>
           );
         })}
+      </div>
+      <div
+        className="row"
+        style={{ justifyContent: "space-between", marginTop: 16 }}
+      >
+        <span className="pill">
+          Export: <strong>{weekStartStr}</strong> →{" "}
+          <strong>{weekEndStr}</strong>
+        </span>
+
+        <div className="row" style={{ gap: 10 }}>
+          {canEditActivities ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span className="muted" style={{ fontSize: 13 }}>
+                Izaberi korisnika:
+              </span>
+
+              <select
+                className="select"
+                value={exportUserId}
+                onChange={(e) => setExportUserId(e.target.value)}
+                disabled={users.length === 0}
+                style={{ minWidth: 160 }}
+              >
+                {users.map((u) => (
+                  <option key={u.id} value={String(u.id)}>
+                    {u.firstName} {u.lastName}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : null}
+          {!canEditActivities ? (
+            <span className="muted" style={{ fontSize: 13 }}>
+              Exportuješ svoj kalendar
+            </span>
+          ) : null}
+
+          <Button
+            disabled={exportBusy || (canEditActivities && !exportUserId)}
+            onClick={handleExportICS}
+          >
+            {exportBusy ? "Exporting..." : "Export .ics"}
+          </Button>
+        </div>
       </div>
 
       <Modal
@@ -378,8 +554,12 @@ export default function CalendarPage() {
           <div className="hr" />
 
           <div className="modalActions">
-            <Button onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={handleSave}>Save</Button>
+            <Button disabled={busy} onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button disabled={busy} onClick={handleSave}>
+              Save
+            </Button>
           </div>
         </div>
       </Modal>

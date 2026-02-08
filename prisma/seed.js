@@ -8,7 +8,6 @@ const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
-// ---------- helpers (UTC dates) ----------
 function startOfWeekMonday(d) {
   const x = new Date(
     Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())
@@ -51,7 +50,14 @@ async function upsertLookup(model, name) {
   });
 }
 
-async function upsertUser({ firstName, lastName, email, password, roleId }) {
+async function upsertUser({
+  firstName,
+  lastName,
+  email,
+  password,
+  roleId,
+  departmentId,
+}) {
   const passwordHash = await bcrypt.hash(password, 10);
   return prisma.user.upsert({
     where: { email },
@@ -59,6 +65,7 @@ async function upsertUser({ firstName, lastName, email, password, roleId }) {
       firstName,
       lastName,
       roleId,
+      departmentId,
       isActive: true,
     },
     create: {
@@ -67,6 +74,7 @@ async function upsertUser({ firstName, lastName, email, password, roleId }) {
       email,
       passwordHash,
       roleId,
+      departmentId,
       isActive: true,
     },
     select: { id: true, email: true },
@@ -244,7 +252,7 @@ async function main() {
 (async () => {
   try {
     await main();
-    console.log("✅ Seed finished");
+    console.log("Seed finished");
   } catch (e) {
     console.error(e);
     process.exit(1);
