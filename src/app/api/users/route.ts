@@ -26,7 +26,7 @@ function isEmail(s: string) {
 }
 
 export async function GET(req: Request) {
-  // dropdown (ADMIN/MANAGER) + admin list (ADMIN)
+  console.log("HIT /api/users GET");
   const auth = await requireRole(req, ["ADMIN", "MANAGER"]);
   if (auth instanceof Response) return auth;
 
@@ -105,6 +105,8 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  console.log("HIT /api/users POST");
+
   const auth = await requireRole(req, ["ADMIN"]);
   if (auth instanceof Response) return auth;
 

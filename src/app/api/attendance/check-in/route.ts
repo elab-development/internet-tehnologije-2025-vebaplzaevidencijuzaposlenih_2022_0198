@@ -25,14 +25,16 @@ function getAuthUserIdAndRole(
   return { userId, role };
 }
 
-function isLateAfter10Local(now: Date) {
+function isLateAfter14Local(now: Date) {
   const hh = now.getHours();
   const mm = now.getMinutes();
-  return hh > 10 || (hh === 10 && mm > 0);
+  return hh > 14 || (hh === 14 && mm > 0);
 }
 
 // POST /api/attendance/check-in
 export async function POST(req: Request) {
+  console.log("HIT /api/attendance/check-in POST ");
+
   const auth = requireAuth(req);
   if (auth instanceof Response) return auth;
 
@@ -57,7 +59,7 @@ export async function POST(req: Request) {
   }
 
   const now = new Date();
-  const statusName = isLateAfter10Local(now) ? "LATE" : "PRESENT";
+  const statusName = isLateAfter14Local(now) ? "LATE" : "PRESENT";
 
   const statusRow = await prisma.attendanceStatus.findUnique({
     where: { name: statusName },

@@ -87,6 +87,8 @@ export async function GET(req: Request) {
 
 //POST /api/activities (MANAGER/ADMIN)
 export async function POST(req: Request) {
+  console.log("HIT /api/activities POST ");
+
   const auth = await requireRole(req, ["ADMIN", "MANAGER"]);
   if (auth instanceof Response) return auth;
 

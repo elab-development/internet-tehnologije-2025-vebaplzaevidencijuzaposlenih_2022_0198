@@ -5,6 +5,8 @@ import { signToken, setAuthCookie, clearAuthCookie } from "@/lib/auth.server";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(req: Request) {
+  console.log("HIT /api/auth/register POST");
+
   try {
     const body = await req.json();
     const { email, password, firstName, lastName } = body ?? {};
@@ -56,8 +58,6 @@ export async function POST(req: Request) {
         createdAt: true,
         lastLoginAt: true,
         role: { select: { name: true } },
-        department: { select: { id: true, name: true } },
-        position: { select: { id: true, name: true } },
       },
     });
 

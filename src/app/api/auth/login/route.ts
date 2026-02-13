@@ -10,6 +10,8 @@ import {
 } from "../../../../../src/lib/auth.server";
 
 export async function POST(req: Request) {
+  console.log("HIT /api/auth/login POST");
+
   try {
     const body = await req.json();
     const { email, password } = body ?? {};
@@ -27,7 +29,7 @@ export async function POST(req: Request) {
     });
 
     //nije bezbedno otkriti da li je mejl tacan
-    if (!user || !user.isActive) {
+    if (!user) {
       return NextResponse.json(
         { error: "Invalid credentials" },
         { status: 401 }
@@ -50,17 +52,26 @@ export async function POST(req: Request) {
 
     const token = signToken({ userId: user.id, role: user.role.name });
 
-    // vracamo user info bez psw i setujemo cookie
     const res = NextResponse.json(
       { user: { id: user.id, email: user.email, role: user.role.name } },
       { status: 200 }
     );
 
-    //httpOnly cookie
     res.headers.append("Set-Cookie", clearAuthCookie());
     res.headers.set("Set-Cookie", setAuthCookie(token));
     return res;
-  } catch {
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+  } catch (e: any) {
+    console.error("LOGIN ERROR:", e);
+    // Prisma errors često imaju e.code, e.meta
+    return NextResponse.json(
+      {
+        error: "Server error",
+        message: e?.message ?? String(e),
+        code: e?.code,
+        meta: e?.meta,
+        stack: process.env.NODE_ENV === "development" ? e?.stack : undefined,
+      },
+      { status: 500 }
+    );
   }
 }

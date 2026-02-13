@@ -14,6 +14,8 @@ export async function PUT(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  console.log("HIT /api/users/{id} PUT");
+
   const auth = await requireRole(req, ["ADMIN"]);
   if (auth instanceof Response) return auth;
 
@@ -142,6 +144,8 @@ export async function DELETE(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  console.log("HIT /api/users/{id} DELETE");
+
   const auth = await requireRole(req, ["ADMIN"]);
   if (auth instanceof Response) return auth;
 

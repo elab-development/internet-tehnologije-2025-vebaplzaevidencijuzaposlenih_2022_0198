@@ -27,6 +27,8 @@ function getAuthUserIdAndRole(
 
 // POST /api/attendance/check-out
 export async function POST(req: Request) {
+  console.log("HIT /api/attendance/check-out POST ");
+
   const auth = requireAuth(req);
   if (auth instanceof Response) return auth;
 

@@ -37,10 +37,12 @@ function getAuthUserIdAndRole(
   return { userId, role };
 }
 
-// GET /api/attendance  -> uvek vraća poslednjih 30 dana do danas (UTC date-only)
+// GET /api/attendance  -> uvek vraca poslednjih 30 dana do danas
 // (ADMIN/MANAGER mogu: /api/attendance?userId=123)
 export async function GET(req: Request) {
-  const auth = requireAuth(req);
+  console.log("HIT /api/attendance GET ");
+
+  const auth = await requireAuth(req);
   if (auth instanceof Response) return auth;
 
   const me = getAuthUserIdAndRole(auth);
@@ -54,7 +56,6 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const userIdParam = url.searchParams.get("userId");
 
-  // target user
   let targetUserId = me.userId;
   if (me.role === "ADMIN" || me.role === "MANAGER") {
     if (userIdParam) {
@@ -69,10 +70,9 @@ export async function GET(req: Request) {
     }
   }
 
-  // poslednjih 30 dana do danas (uključivo), date-only UTC
-  const to = todayUTCDateOnly(); // danas 00:00Z
-  const from = addDaysUTC(to, -29); // 29 dana unazad (ukupno 30 dana)
-  const endExclusive = addDaysUTC(to, 1); // [from, to+1)
+  const to = todayUTCDateOnly();
+  const from = addDaysUTC(to, -29);
+  const endExclusive = addDaysUTC(to, 1);
 
   const attendances = await prisma.attendance.findMany({
     where: {
@@ -91,14 +91,12 @@ export async function GET(req: Request) {
     },
   });
 
-  // mapiranje postojećih po datumu
   const byDate = new Map<string, any>();
   for (const a of attendances) {
     const key = toISODateUTC(a.date);
     byDate.set(key, a);
   }
 
-  // popunjena lista od from..to
   const items: any[] = [];
   for (let i = 0; i < 30; i++) {
     const d = addDaysUTC(from, i);
@@ -116,7 +114,6 @@ export async function GET(req: Request) {
         status: a.status?.name ?? "PRESENT",
       });
     } else {
-      // nema zapisa u bazi -> ABSENT
       items.push({
         id: null,
         date: dateStr,

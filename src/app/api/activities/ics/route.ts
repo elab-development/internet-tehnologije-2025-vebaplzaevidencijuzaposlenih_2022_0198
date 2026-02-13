@@ -37,6 +37,8 @@ function escICS(text: string) {
 }
 
 export async function GET(req: Request) {
+  console.log("HIT /api/activities/ics GET ");
+
   const auth = requireAuth(req);
   if (auth instanceof Response) return auth;
 

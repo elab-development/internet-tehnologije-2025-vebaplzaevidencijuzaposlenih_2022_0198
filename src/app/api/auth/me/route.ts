@@ -7,6 +7,8 @@ import {
 } from "../../../../../src/lib/auth.server";
 
 export async function GET(req: Request) {
+  console.log("HIT /api/auth/me GET");
+
   try {
     const token = readAuthTokenFromRequest(req);
     if (!token) {

@@ -15,6 +15,8 @@ export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  console.log("HIT /api/users/reset-password00 POST");
+
   const auth = await requireRole(req, ["ADMIN"]);
   if (auth instanceof Response) return auth;
 
