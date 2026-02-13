@@ -10,7 +10,6 @@ const pool = new Pool({
 
 const adapter = new PrismaPg(pool);
 
-// global cache (Next dev reload safe)
 if (!global.prisma) {
   global.prisma = new PrismaClient({ adapter });
 }

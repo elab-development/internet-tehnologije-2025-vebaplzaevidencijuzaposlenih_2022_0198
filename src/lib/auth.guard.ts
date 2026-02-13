@@ -14,7 +14,6 @@ export function getAuthUser(req: Request) {
   }
 }
 
-//mora biti ulogovan
 export function requireAuth(req: Request) {
   const user = getAuthUser(req);
 
@@ -25,7 +24,6 @@ export function requireAuth(req: Request) {
   return user;
 }
 
-//401 ako nije ulogovan, 403 ako nema odg ulogu
 export function requireRole(req: Request, allowedRoles: string[]) {
   const user = getAuthUser(req);
 
