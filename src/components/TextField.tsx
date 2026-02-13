@@ -5,6 +5,7 @@ type TextFieldProps = {
   type?: "text" | "email" | "password";
   placeholder?: string;
   error?: string;
+  onKeyDown?: React.KeyboardEventHandler<HTMLInputElement>;
 };
 
 export default function TextField({
@@ -14,6 +15,7 @@ export default function TextField({
   type = "text",
   placeholder,
   error,
+  onKeyDown,
 }: TextFieldProps) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -26,6 +28,7 @@ export default function TextField({
         value={value}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
+        onKeyDown={onKeyDown}
         style={{
           border: error ? "1px solid rgba(200, 60, 60, 0.70)" : undefined,
           boxShadow: error ? "0 0 0 4px rgba(200, 60, 60, 0.10)" : undefined,

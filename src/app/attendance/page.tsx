@@ -14,7 +14,6 @@ function todayYMDLocal() {
   const d = new Date();
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 }
-
 function isoToHHMM(iso: string) {
   const d = new Date(iso);
   return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
@@ -32,6 +31,12 @@ export default function AttendancePage() {
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [statusMsg, setStatusMsg] = useState("");
   const [loading, setLoading] = useState(true);
+
+  const canEditActivities = user?.role === "MANAGER" || user?.role === "ADMIN";
+  const [users, setUsers] = useState<
+    { id: number; firstName: string; lastName: string; email: string }[]
+  >([]);
+  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -52,7 +57,17 @@ export default function AttendancePage() {
       fromDate.getMonth() + 1
     )}-${pad2(fromDate.getDate())}`;
 
-    const res = await fetch(`/api/attendance?from=${from}&to=${to}`, {
+    const qs = new URLSearchParams();
+
+    if (canEditActivities) {
+      if (selectedUserId == null) {
+        setLoading(false);
+        return;
+      }
+      qs.set("userId", String(selectedUserId));
+    }
+
+    const res = await fetch(`/api/attendance?${qs.toString()}`, {
       method: "GET",
       credentials: "include",
     });
@@ -79,12 +94,42 @@ export default function AttendancePage() {
 
     setRecords(mapped);
     setLoading(false);
-  }, [user]);
+  }, [user, selectedUserId, canEditActivities]);
 
   useEffect(() => {
     if (!user) return;
     loadHistory();
   }, [user, loadHistory]);
+
+  useEffect(() => {
+    if (!user) return;
+    if (!canEditActivities) return;
+
+    (async () => {
+      const res = await fetch("/api/users", { credentials: "include" });
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        setStatusMsg(err?.error ?? "Ne mogu da učitam korisnike.");
+        return;
+      }
+
+      const data = await res.json().catch(() => null);
+
+      const list = (data?.users ?? []).map((u: any) => ({
+        id: Number(u.id),
+        firstName: u.firstName ?? "",
+        lastName: u.lastName ?? "",
+        email: u.email ?? "",
+      }));
+
+      setUsers(list);
+
+      // DEFAULT: izaberi mene po email-u
+      const me = list.find((x: any) => x.email === user.email);
+      if (me) setSelectedUserId(me.id);
+      else if (list.length > 0) setSelectedUserId(list[0].id);
+    })();
+  }, [user, canEditActivities]);
 
   const today = useMemo(() => {
     const t = todayYMDLocal();
@@ -143,19 +188,60 @@ export default function AttendancePage() {
         <h2 style={{ margin: 0, fontSize: 16 }}>
           Danas: {new Date().toLocaleDateString("sr-RS")}
         </h2>
-
         <div
-          style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 }}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            flexWrap: "wrap",
+            marginTop: 12,
+          }}
         >
-          <Button onClick={handleCheckIn} disabled={!canCheckIn}>
-            Evidentiraj dolazak
-          </Button>
+          <div
+            style={{
+              display: "flex",
+              gap: 10,
+              flexWrap: "wrap",
+              marginTop: 12,
+            }}
+          >
+            <Button onClick={handleCheckIn} disabled={!canCheckIn}>
+              Evidentiraj dolazak
+            </Button>
 
-          <Button onClick={handleCheckOut} disabled={!canCheckOut}>
-            Evidentiraj odlazak
-          </Button>
+            <Button onClick={handleCheckOut} disabled={!canCheckOut}>
+              Evidentiraj odlazak
+            </Button>
 
-          {statusMsg ? <span className="muted">{statusMsg}</span> : null}
+            {statusMsg ? <span className="muted">{statusMsg}</span> : null}
+          </div>
+          {canEditActivities ? (
+            <div
+              style={{
+                marginLeft: "auto",
+                display: "flex",
+                gap: 10,
+                alignItems: "center",
+              }}
+            >
+              <span className="muted">Aktivnost korisnika:</span>
+
+              <select
+                value={selectedUserId ?? ""}
+                onChange={(e) => setSelectedUserId(Number(e.target.value))}
+                className="select"
+                style={{ minWidth: 280 }}
+              >
+                {users.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.firstName || u.lastName
+                      ? `${u.firstName} ${u.lastName}`.trim() + ` — ${u.email}`
+                      : u.email}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : null}
         </div>
 
         <div className="muted" style={{ marginTop: 10 }}>

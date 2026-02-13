@@ -484,7 +484,7 @@ export default function AdminPage() {
       {isAddOpen ? (
         <Modal
           open={isAddOpen}
-          title="Add user"
+          title="Kreiraj korisnika"
           onClose={() => {
             setIsAddOpen(false);
             setPwValue("");
@@ -530,7 +530,7 @@ export default function AdminPage() {
               label="Lozinka (inicijalna)"
               value={pwValue}
               onChange={setPwValue}
-              placeholder="min 6 karaktera"
+              placeholder="min. 6 karaktera"
             />
 
             <div
@@ -544,7 +544,7 @@ export default function AdminPage() {
               >
                 Poništi
               </Button>
-              <Button onClick={submitAdd}>Create</Button>
+              <Button onClick={submitAdd}>Kreiraj</Button>
             </div>
           </div>
         </Modal>

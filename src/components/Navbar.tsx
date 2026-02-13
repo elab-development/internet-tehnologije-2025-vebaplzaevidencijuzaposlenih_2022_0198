@@ -13,13 +13,11 @@ export default function Navbar() {
   const pathname = usePathname();
 
   async function handleLogout() {
-    // backend logout (brise cookie)
     await fetch("/api/auth/logout", {
       method: "POST",
       credentials: "include",
     }).catch(() => null);
 
-    // frontend state (AuthProvider)
     await logout();
 
     router.push("/login");

@@ -157,6 +157,7 @@ export default function CalendarPage() {
   useEffect(() => {
     loadWeek();
   }, [weekStartStr, weekEndStr]);
+
   useEffect(() => {
     loadUsers();
   }, [canEditActivities]);
@@ -400,10 +401,10 @@ export default function CalendarPage() {
                 <div className="dayTitle">
                   {dayNames[idx]} <span className="muted">({dateStr})</span>
                 </div>
-                {canEditActivities ? (
-                  <Button onClick={() => openAddModal(dateStr)}>Dodaj</Button>
-                ) : null}
               </div>
+              {canEditActivities ? (
+                <Button onClick={() => openAddModal(dateStr)}>+</Button>
+              ) : null}
 
               {list.length === 0 ? (
                 <div className="muted">Nema aktivnosti.</div>
@@ -443,6 +444,7 @@ export default function CalendarPage() {
           );
         })}
       </div>
+
       <div
         className="row"
         style={{ justifyContent: "space-between", marginTop: 16 }}
@@ -491,7 +493,7 @@ export default function CalendarPage() {
 
       <Modal
         open={open}
-        title={editingId ? "Edit activity" : "Add activity"}
+        title={editingId ? "Izmeni aktivnost" : "Dodaj aktivnost"}
         onClose={() => setOpen(false)}
       >
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -555,10 +557,10 @@ export default function CalendarPage() {
 
           <div className="modalActions">
             <Button disabled={busy} onClick={() => setOpen(false)}>
-              Cancel
+              Poništi
             </Button>
             <Button disabled={busy} onClick={handleSave}>
-              Save
+              Sačuvaj
             </Button>
           </div>
         </div>

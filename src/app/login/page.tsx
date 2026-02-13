@@ -6,6 +6,7 @@ import TextField from "@/components/TextField";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import Link from "next/link";
+import { relative } from "path";
 
 function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -20,6 +21,7 @@ export default function LoginPage() {
   //state forme
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   //ui feedback state
   const [emailError, setEmailError] = useState<string | undefined>(undefined);
@@ -83,11 +85,21 @@ export default function LoginPage() {
 
   //sta se vidi na ekranu:
   return (
-    <main>
+    <main
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+      }}
+    >
       <h1 className="h1">Login</h1>
       <p className="h2">Unesi email i lozinku da pristupiš kalendaru.</p>
 
-      <div className="card" style={{ maxWidth: 420, marginTop: 16 }}>
+      <div
+        className="card"
+        style={{ maxWidth: 500, width: "100%", marginTop: 16 }}
+      >
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <TextField
             label="Email"
@@ -96,16 +108,43 @@ export default function LoginPage() {
             onChange={setEmail}
             placeholder="npr. marko@mail.com"
             error={emailError}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleLogin();
+            }}
           />
 
-          <TextField
-            label="Lozinka"
-            type="password"
-            value={password}
-            onChange={setPassword}
-            placeholder="••••"
-            error={passwordError}
-          />
+          <div style={{ position: "relative" }}>
+            <TextField
+              label="Lozinka"
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={setPassword}
+              placeholder="••••"
+              error={passwordError}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleLogin();
+              }}
+            />
+
+            <img
+              src={
+                showPassword
+                  ? "/icons/password-eye/eye-off.svg"
+                  : "/icons/password-eye/eye-on.svg"
+              }
+              alt="Toggle password visibility"
+              onClick={() => setShowPassword((s) => !s)}
+              style={{
+                position: "absolute",
+                right: 12,
+                top: 42,
+                width: 20,
+                height: 20,
+                cursor: "pointer",
+                opacity: 0.7,
+              }}
+            />
+          </div>
 
           <p className="muted">
             Nemaš nalog?{" "}
@@ -120,6 +159,16 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
+      <img
+        src="/slides/stickmans-line.png"
+        alt="Login ilustracija"
+        style={{
+          marginTop: 8,
+          maxWidth: 1200,
+          width: "100%",
+          opacity: 0.9,
+        }}
+      />
     </main>
   );
 }

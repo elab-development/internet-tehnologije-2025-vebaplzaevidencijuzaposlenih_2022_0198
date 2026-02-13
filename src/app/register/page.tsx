@@ -19,6 +19,7 @@ export default function RegisterPage() {
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const [firstNameError, setFirstNameError] = useState<string | undefined>();
   const [lastNameError, setLastNameError] = useState<string | undefined>();
@@ -92,7 +93,6 @@ export default function RegisterPage() {
       return;
     }
 
-    // backend vraća: { user: { id, email, role } } (pretpostavka: EMPLOYEE default)
     const u = data?.user;
     if (!u?.email || !u?.role) {
       setStatusMsg("Registracija uspela, ali odgovor servera je neispravan.");
@@ -106,12 +106,22 @@ export default function RegisterPage() {
   }
 
   return (
-    <main>
+    <main
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+      }}
+    >
       <h1 className="h1">Register</h1>
       <p className="h2">Kreiraj nalog da koristiš evidenciju prisustva.</p>
 
-      <div className="card" style={{ maxWidth: 420, marginTop: 16 }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      <div
+        className="card"
+        style={{ maxWidth: 560, width: "100%", marginTop: 16 }}
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
           <TextField
             label="Ime"
             value={firstName}
@@ -137,17 +147,38 @@ export default function RegisterPage() {
             error={emailError}
           />
 
-          <TextField
-            label="Lozinka"
-            type="password"
-            value={password}
-            onChange={setPassword}
-            placeholder="••••••"
-            error={passwordError}
-          />
+          <div style={{ position: "relative" }}>
+            <TextField
+              label="Lozinka"
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={setPassword}
+              placeholder="••••"
+              error={passwordError}
+            />
+
+            <img
+              src={
+                showPassword
+                  ? "/icons/password-eye/eye-off.svg"
+                  : "/icons/password-eye/eye-on.svg"
+              }
+              alt="Toggle password visibility"
+              onClick={() => setShowPassword((s) => !s)}
+              style={{
+                position: "absolute",
+                right: 12,
+                top: 40,
+                width: 20,
+                height: 20,
+                cursor: "pointer",
+                opacity: 0.7,
+              }}
+            />
+          </div>
 
           <div className="row">
-            <Button onClick={handleRegister}>Register</Button>
+            <Button onClick={handleRegister}>Registeruj se</Button>
             {statusMsg ? <span className="muted">{statusMsg}</span> : null}
           </div>
 
@@ -159,6 +190,16 @@ export default function RegisterPage() {
           </div>
         </div>
       </div>
+      <img
+        src="/slides/stickmans-line.png"
+        alt="Login ilustracija"
+        style={{
+          marginTop: 0,
+          maxWidth: 1200,
+          width: "100%",
+          opacity: 0.9,
+        }}
+      />
     </main>
   );
 }
