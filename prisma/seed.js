@@ -112,6 +112,97 @@ async function createActivityIfNotExists({
     },
   });
 }
+function randomInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function randomCheckIn() {
+  const hour = randomInt(9, 10);
+  const minute = hour === 9 ? randomInt(0, 59) : randomInt(0, 20);
+  return { hour, minute };
+}
+
+function randomCheckOut() {
+  const hour = randomInt(14, 16);
+  const minute = randomInt(0, 59);
+  return { hour, minute };
+}
+
+function utcDateOnly(d) {
+  return new Date(
+    Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())
+  );
+}
+
+function isoDateUTC(d) {
+  return d.toISOString().slice(0, 10);
+}
+
+async function seedRandomAttendanceForAllUsers() {
+  const users = await prisma.user.findMany({
+    select: { id: true },
+  });
+
+  // poslednjih 15 dana do juce
+  const today = utcDateOnly(new Date());
+  const endDate = new Date(today);
+  endDate.setUTCDate(endDate.getUTCDate() - 1);
+
+  const startDate = new Date(endDate);
+  startDate.setUTCDate(startDate.getUTCDate() - 14);
+
+  for (const u of users) {
+    for (
+      let d = new Date(startDate);
+      d <= endDate;
+      d.setUTCDate(d.getUTCDate() + 1)
+    ) {
+      const dateStr = isoDateUTC(d);
+
+      const isAbsent = Math.random() < 0.09;
+
+      let startTime = null;
+      let endTime = null;
+      let statusId = 2;
+
+      if (!isAbsent) {
+        const checkIn = randomCheckIn();
+        const checkOut = randomCheckOut();
+
+        startTime = new Date(
+          `${dateStr}T${String(checkIn.hour).padStart(2, "0")}:${String(
+            checkIn.minute
+          ).padStart(2, "0")}:00.000Z`
+        );
+
+        endTime = new Date(
+          `${dateStr}T${String(checkOut.hour).padStart(2, "0")}:${String(
+            checkOut.minute
+          ).padStart(2, "0")}:00.000Z`
+        );
+
+        statusId = checkIn.hour >= 10 ? 3 : 1;
+      }
+
+      await prisma.attendance.upsert({
+        where: {
+          userId_date: {
+            userId: u.id,
+            date: new Date(`${dateStr}T00:00:00.000Z`),
+          },
+        },
+        update: { startTime, endTime, statusId },
+        create: {
+          userId: u.id,
+          date: new Date(`${dateStr}T00:00:00.000Z`),
+          startTime,
+          endTime,
+          statusId,
+        },
+      });
+    }
+  }
+}
 
 async function main() {
   // ---------- lookups ----------
@@ -247,6 +338,8 @@ async function main() {
     endHHMM: "16:00",
     description: "Personal time off",
   });
+
+  await seedRandomAttendanceForAllUsers();
 }
 
 (async () => {
