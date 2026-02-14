@@ -77,3 +77,15 @@ model AdminAction {
   adminId   Int
   admin     User     @relation(fields: [adminId], references: [id])
 }
+model Holiday {
+  id        Int      @id @default(autoincrement())
+  date      DateTime // (date-only koncept)
+  name      String   
+  country   String   // "RS"
+  source    String   // "nager"
+  createdAt DateTime @default(now())
+
+  @@unique([date, country, name])
+  @@index([date, country])
+}
+

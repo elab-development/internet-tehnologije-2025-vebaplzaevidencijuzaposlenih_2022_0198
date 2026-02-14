@@ -9,6 +9,8 @@ import { useAuth } from "@/components/AuthProvider";
 
 const dayNames = ["Pon", "Uto", "Sre", "Čet", "Pet"];
 
+type Holiday = { date: string; name: string };
+
 type Activity = {
   id: number;
   name: string;
@@ -131,6 +133,12 @@ function inSelectedWorkWeek(day: Date, selectedMonday: string) {
   const mon = selectedMonday;
   return d >= mon && d <= ymdLocal(addDays(new Date(mon), 4));
 }
+function startOfYearYMD(year: number) {
+  return `${year}-01-01`;
+}
+function endOfYearYMD(year: number) {
+  return `${year}-12-31`;
+}
 
 export default function CalendarPage() {
   const { user } = useAuth();
@@ -144,6 +152,8 @@ export default function CalendarPage() {
   const weekEndStr = toISODate(addDays(weekStart, 4));
   const [weekPickerOpen, setWeekPickerOpen] = useState(false);
   const [hoverWeekStart, setHoverWeekStart] = useState<string | null>(null); // YYYY-MM-DD ponedeljak
+
+  const [holidays, setHolidays] = useState<Holiday[]>([]);
 
   const [activities, setActivities] = useState<Activity[]>([]);
   const [statusMsg, setStatusMsg] = useState("");
@@ -204,6 +214,37 @@ export default function CalendarPage() {
       setActivities([]);
     }
   }
+  async function fetchHolidaysYear(year: number): Promise<Holiday[]> {
+    try {
+      const from = startOfYearYMD(year);
+      const to = endOfYearYMD(year);
+
+      const res = await fetch(
+        `/api/holidays?from=${from}&to=${to}&country=RS`,
+        { credentials: "include" }
+      );
+
+      const data = await res.json().catch(() => null);
+      if (!res.ok) return [];
+
+      return (data?.holidays ?? []) as Holiday[];
+    } catch {
+      return [];
+    }
+  }
+
+  function mergeUniqueHolidays(a: Holiday[], b: Holiday[]) {
+    const seen = new Set<string>();
+    const out: Holiday[] = [];
+
+    for (const h of [...a, ...b]) {
+      const key = `${h.date}|${h.name}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(h);
+    }
+    return out;
+  }
 
   async function loadUsers() {
     if (!canEditActivities) return;
@@ -232,6 +273,17 @@ export default function CalendarPage() {
     }
   }
 
+  const yearStart = weekStart.getFullYear();
+  const yearEnd = addDays(weekStart, 4).getFullYear();
+
+  useEffect(() => {
+    (async () => {
+      const h1 = await fetchHolidaysYear(yearStart);
+      const h2 = yearEnd !== yearStart ? await fetchHolidaysYear(yearEnd) : [];
+      setHolidays(mergeUniqueHolidays(h1, h2));
+    })();
+  }, [yearStart, yearEnd]);
+
   useEffect(() => {
     loadWeek();
   }, [weekStartStr, weekEndStr]);
@@ -254,6 +306,17 @@ export default function CalendarPage() {
     }
     return map;
   }, [activities]);
+
+  const holidayByDate = useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const h of holidays) m[h.date] = h.name;
+    return m;
+  }, [holidays]);
+
+  function holidayLabel(dateStr: string) {
+    const name = holidayByDate[dateStr];
+    return name ? `Neradni dan (${name})` : null;
+  }
 
   function openAddModal(defaultDate?: string) {
     setEditingId(null);
@@ -288,6 +351,9 @@ export default function CalendarPage() {
       return "Vreme mora biti u formatu HH:mm.";
     if (timeToMinutes(start) >= timeToMinutes(end))
       return "Početak mora biti pre kraja.";
+    const hLabel = holidayLabel(formDate);
+    if (hLabel) return hLabel;
+
     return "";
   }
 
@@ -451,7 +517,14 @@ export default function CalendarPage() {
           </Button>
 
           {canEditActivities ? (
-            <Button onClick={() => openAddModal()}>+ Dodaj aktivnost</Button>
+            <span title={holidayLabel(weekStartStr) ?? "Dodaj aktivnost"}>
+              <Button
+                onClick={() => openAddModal()}
+                disabled={Boolean(holidayByDate[weekStartStr])}
+              >
+                + Dodaj aktivnost
+              </Button>
+            </span>
           ) : null}
         </div>
 
@@ -483,15 +556,66 @@ export default function CalendarPage() {
           const dateStr = toISODate(d);
           const list = activitiesByDate[dateStr] ?? [];
 
+          const holidayName = holidayByDate[dateStr];
+          const isHoliday = Boolean(holidayName);
+
           return (
-            <section key={dateStr} className="dayCol">
+            <section
+              key={dateStr}
+              className="dayCol"
+              style={
+                isHoliday
+                  ? {
+                      background: "rgba(0,0,0,0.55)",
+                      border: "1px solid rgba(255,255,255,0.10)",
+                      position: "relative",
+                    }
+                  : undefined
+              }
+            >
               <div className="row" style={{ justifyContent: "space-between" }}>
                 <div className="dayTitle">
                   {dayNames[idx]} <span className="muted">({dateStr})</span>
+                  {isHoliday ? (
+                    <div
+                      style={{
+                        marginTop: 8,
+                        marginBottom: 10,
+                        display: "flex",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <div
+                        style={{
+                          color: "#fff",
+                          fontSize: 12,
+                          background: "rgba(255,255,255,0.08)",
+                          border: "1px solid rgba(255,255,255,0.14)",
+                          padding: "6px 10px",
+                          borderRadius: 999,
+                          textAlign: "center",
+                          maxWidth: "100%",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                        title={`Neradni dan (${holidayName})`}
+                      >
+                        Neradni dan ({holidayName})
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               </div>
               {canEditActivities ? (
-                <Button onClick={() => openAddModal(dateStr)}>+</Button>
+                <span title={holidayLabel(dateStr) ?? "Dodaj aktivnost"}>
+                  <Button
+                    onClick={() => openAddModal(dateStr)}
+                    disabled={Boolean(holidayByDate[dateStr])}
+                  >
+                    +
+                  </Button>
+                </span>
               ) : null}
 
               {list.length === 0 ? (
@@ -664,7 +788,6 @@ export default function CalendarPage() {
             nedelju (pon–pet).
           </div>
 
-          {/* 12 meseci */}
           <div
             style={{
               display: "grid",
@@ -678,7 +801,7 @@ export default function CalendarPage() {
             {Array.from({ length: 12 }, (_, month0) => {
               const year = weekStart.getFullYear();
               const monthName = new Date(year, month0, 1).toLocaleString(
-                "sr-RS",
+                "sr-Latn-RS",
                 {
                   month: "long",
                 }
@@ -809,11 +932,13 @@ export default function CalendarPage() {
                               dayYMD >= hoverWeekStart &&
                               dayYMD <=
                                 ymdLocal(addDays(new Date(hoverWeekStart), 4));
+                            const isHolidayDot = Boolean(holidayByDate[dayYMD]);
 
                             return (
                               <div
                                 key={dayYMD}
                                 style={{
+                                  position: "relative",
                                   height: 28,
                                   borderRadius: 8,
                                   display: "flex",
@@ -832,6 +957,19 @@ export default function CalendarPage() {
                                 }}
                               >
                                 {d.getDate()}
+                                {isHolidayDot ? (
+                                  <span
+                                    style={{
+                                      position: "absolute",
+                                      top: 4,
+                                      right: 5,
+                                      width: 6,
+                                      height: 6,
+                                      borderRadius: 999,
+                                      background: "#ff3b30",
+                                    }}
+                                  />
+                                ) : null}
                               </div>
                             );
                           })}
