@@ -51,6 +51,86 @@ function safeToISOString(d: Date) {
   if (Number.isNaN(d.getTime())) return null;
   return d.toISOString();
 }
+function startOfYear(d: Date) {
+  return new Date(d.getFullYear(), 0, 1);
+}
+function endOfYear(d: Date) {
+  return new Date(d.getFullYear(), 11, 31);
+}
+
+function getMondaysOfYear(year: number) {
+  const first = startOfWeekMonday(new Date(year, 0, 1));
+  const lastDay = new Date(year, 11, 31);
+
+  const mondays: Date[] = [];
+  for (let cur = new Date(first); cur <= lastDay; cur = addDays(cur, 7)) {
+    mondays.push(new Date(cur));
+  }
+  return mondays;
+}
+
+function weekNumberISO(monday: Date) {
+  const d = new Date(
+    Date.UTC(monday.getFullYear(), monday.getMonth(), monday.getDate())
+  );
+  d.setUTCDate(d.getUTCDate() + 3);
+  const firstThursday = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
+  const diff = d.getTime() - firstThursday.getTime();
+  return 1 + Math.round(diff / (7 * 24 * 60 * 60 * 1000));
+}
+const weekDayNames = ["Pon", "Uto", "Sre", "Čet", "Pet", "Sub", "Ned"];
+
+function startOfWeekMondayLocal(d: Date) {
+  const x = new Date(d);
+  const day = x.getDay(); // 0=ned,1=pon...
+  const diff = day === 0 ? -6 : 1 - day;
+  x.setDate(x.getDate() + diff);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+
+function ymdLocal(d: Date) {
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function buildMonthWeeks(year: number, monthIndex0: number) {
+  const firstOfMonth = new Date(year, monthIndex0, 1);
+  const lastOfMonth = new Date(year, monthIndex0 + 1, 0);
+
+  const gridStart = startOfWeekMondayLocal(firstOfMonth);
+  const gridEnd = startOfWeekMondayLocal(lastOfMonth);
+  const endInclusive = new Date(gridEnd);
+  endInclusive.setDate(endInclusive.getDate() + 6);
+
+  const weeks: Date[][] = [];
+  for (
+    let cur = new Date(gridStart);
+    cur <= endInclusive;
+    cur.setDate(cur.getDate() + 7)
+  ) {
+    const week: Date[] = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(cur);
+      d.setDate(d.getDate() + i);
+      week.push(d);
+    }
+    weeks.push(week);
+  }
+  return weeks;
+}
+
+function isSameYMD(a: string, b: string) {
+  return a === b;
+}
+
+function inSelectedWorkWeek(day: Date, selectedMonday: string) {
+  const d = ymdLocal(day);
+  const mon = selectedMonday;
+  return d >= mon && d <= ymdLocal(addDays(new Date(mon), 4));
+}
 
 export default function CalendarPage() {
   const { user } = useAuth();
@@ -62,6 +142,8 @@ export default function CalendarPage() {
 
   const weekStartStr = toISODate(weekStart);
   const weekEndStr = toISODate(addDays(weekStart, 4));
+  const [weekPickerOpen, setWeekPickerOpen] = useState(false);
+  const [hoverWeekStart, setHoverWeekStart] = useState<string | null>(null); // YYYY-MM-DD ponedeljak
 
   const [activities, setActivities] = useState<Activity[]>([]);
   const [statusMsg, setStatusMsg] = useState("");
@@ -139,10 +221,6 @@ export default function CalendarPage() {
 
       const loaded = data?.users ?? [];
       setUsers(loaded);
-
-      if (!exportUserId && loaded.length > 0) {
-        setExportUserId(String(loaded[0].id));
-      }
 
       if (!exportUserId && loaded.length > 0) {
         setExportUserId(String(loaded[0].id));
@@ -377,7 +455,17 @@ export default function CalendarPage() {
           ) : null}
         </div>
 
-        <span className="pill">
+        <span
+          className="pill"
+          role="button"
+          tabIndex={0}
+          onClick={() => setWeekPickerOpen(true)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") setWeekPickerOpen(true);
+          }}
+          style={{ cursor: "pointer" }}
+          title="Klikni da izabereš nedelju"
+        >
           Nedelja: <strong>{weekStartStr}</strong> →{" "}
           <strong>{weekEndStr}</strong>
         </span>
@@ -562,6 +650,202 @@ export default function CalendarPage() {
             <Button disabled={busy} onClick={handleSave}>
               Sačuvaj
             </Button>
+          </div>
+        </div>
+      </Modal>
+      <Modal
+        open={weekPickerOpen}
+        title={`Izaberi nedelju (${weekStart.getFullYear()})`}
+        onClose={() => setWeekPickerOpen(false)}
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div className="muted" style={{ fontSize: 13 }}>
+            Levo od svake nedelje je strelica. Klikni strelicu da izabereš
+            nedelju (pon–pet).
+          </div>
+
+          {/* 12 meseci */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(1, minmax(0, 1fr))",
+              gap: 12,
+              maxHeight: 520,
+              overflowY: "auto",
+              paddingRight: 6,
+            }}
+          >
+            {Array.from({ length: 12 }, (_, month0) => {
+              const year = weekStart.getFullYear();
+              const monthName = new Date(year, month0, 1).toLocaleString(
+                "sr-RS",
+                {
+                  month: "long",
+                }
+              );
+
+              const weeks = buildMonthWeeks(year, month0);
+
+              return (
+                <div
+                  key={month0}
+                  style={{
+                    border: "1px solid #161616",
+                    borderRadius: 12,
+                    padding: 10,
+                    background: "rgba(255,255,255,0.02)",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "baseline",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <div style={{ fontSize: 14 }}>
+                      <strong style={{ textTransform: "capitalize" }}>
+                        {monthName}
+                      </strong>
+                    </div>
+                    <div className="muted" style={{ fontSize: 12 }}>
+                      {year}
+                    </div>
+                  </div>
+
+                  {/* header Pon–Ned */}
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "34px repeat(7, 1fr)",
+                      gap: 4,
+                      marginTop: 8,
+                      alignItems: "center",
+                    }}
+                  >
+                    <div />
+                    {weekDayNames.map((n) => (
+                      <div
+                        key={n}
+                        className="muted"
+                        style={{ fontSize: 11, textAlign: "center" }}
+                      >
+                        {n}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* week rows */}
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 4,
+                      marginTop: 6,
+                    }}
+                  >
+                    {weeks.map((weekDays) => {
+                      const monday = startOfWeekMondayLocal(weekDays[0]); // već je pon
+                      const mondayYMD = ymdLocal(monday);
+                      const isSelected = isSameYMD(mondayYMD, weekStartStr);
+                      const isHover = hoverWeekStart === mondayYMD;
+
+                      return (
+                        <div
+                          key={mondayYMD}
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "34px repeat(7, 1fr)",
+                            gap: 4,
+                            alignItems: "center",
+                            padding: 4,
+                            borderRadius: 10,
+                            background: isSelected
+                              ? "rgba(255,255,255,0.08)"
+                              : isHover
+                              ? "rgba(255,255,255,0.05)"
+                              : "transparent",
+                            border: isSelected
+                              ? "1px solid rgba(255,255,255,0.15)"
+                              : "1px solid transparent",
+                          }}
+                          onMouseEnter={() => setHoverWeekStart(mondayYMD)}
+                          onMouseLeave={() => setHoverWeekStart(null)}
+                        >
+                          {/* Arrow */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setWeekStart(monday);
+                              setWeekPickerOpen(false);
+                            }}
+                            style={{
+                              width: 34,
+                              height: 28,
+                              borderRadius: 8,
+                              border: "1px solid #2a2a2a",
+                              background: isSelected
+                                ? "#1b1b1b"
+                                : "transparent",
+                              color: "inherit",
+                              cursor: "pointer",
+                            }}
+                            aria-label={`Izaberi nedelju od ${mondayYMD}`}
+                            title={`Izaberi nedelju (${mondayYMD})`}
+                          >
+                            →
+                          </button>
+
+                          {/* Days */}
+                          {weekDays.map((d) => {
+                            const dayYMD = ymdLocal(d);
+                            const inMonth = d.getMonth() === month0;
+                            const isWorkSelected =
+                              isSelected &&
+                              dayYMD >= weekStartStr &&
+                              dayYMD <= weekEndStr;
+                            const isWorkHover =
+                              hoverWeekStart &&
+                              dayYMD >= hoverWeekStart &&
+                              dayYMD <=
+                                ymdLocal(addDays(new Date(hoverWeekStart), 4));
+
+                            return (
+                              <div
+                                key={dayYMD}
+                                style={{
+                                  height: 28,
+                                  borderRadius: 8,
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  fontSize: 12,
+                                  opacity: inMonth ? 1 : 0.35,
+                                  background: isWorkSelected
+                                    ? "rgba(255,255,255,0.10)"
+                                    : isWorkHover
+                                    ? "rgba(255,255,255,0.06)"
+                                    : "rgba(255,255,255,0.02)",
+                                  border: isWorkSelected
+                                    ? "1px solid rgba(255,255,255,0.18)"
+                                    : "1px solid transparent",
+                                }}
+                              >
+                                {d.getDate()}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="modalActions">
+            <Button onClick={() => setWeekPickerOpen(false)}>Zatvori</Button>
           </div>
         </div>
       </Modal>
