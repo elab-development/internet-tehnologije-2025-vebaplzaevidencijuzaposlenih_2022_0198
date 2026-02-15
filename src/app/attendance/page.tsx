@@ -141,6 +141,8 @@ export default function AttendancePage() {
   const canCheckIn = !today?.checkInAt;
   const canCheckOut = !!today?.checkInAt && !today?.checkOutAt;
 
+  const isEmployee = user?.role === "EMPLOYEE";
+
   async function handleCheckIn() {
     setStatusMsg("");
     const res = await fetch("/api/attendance/check-in", {
@@ -197,14 +199,7 @@ export default function AttendancePage() {
             marginTop: 12,
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              gap: 10,
-              flexWrap: "wrap",
-              marginTop: 12,
-            }}
-          >
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <Button onClick={handleCheckIn} disabled={!canCheckIn}>
               Evidentiraj dolazak
             </Button>
@@ -215,32 +210,52 @@ export default function AttendancePage() {
 
             {statusMsg ? <span className="muted">{statusMsg}</span> : null}
           </div>
-          {canEditActivities ? (
-            <div
-              style={{
-                marginLeft: "auto",
-                display: "flex",
-                gap: 10,
-                alignItems: "center",
+          <div
+            style={{
+              marginLeft: "auto",
+              display: "flex",
+              gap: 10,
+              alignItems: "center",
+              flexWrap: "wrap",
+            }}
+          >
+            {canEditActivities ? (
+              <div
+                style={{
+                  marginLeft: "auto",
+                  display: "flex",
+                  gap: 10,
+                  alignItems: "center",
+                }}
+              >
+                <span className="muted">Aktivnost korisnika:</span>
+
+                <select
+                  value={selectedUserId ?? ""}
+                  onChange={(e) => setSelectedUserId(Number(e.target.value))}
+                  className="select"
+                  style={{ minWidth: 280 }}
+                >
+                  {users.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.firstName || u.lastName
+                        ? `${u.firstName} ${u.lastName}`.trim() +
+                          ` — ${u.email}`
+                        : u.email}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
+          </div>
+          {isEmployee ? (
+            <Button
+              onClick={() => {
+                router.push("/calendar?wfh=1");
               }}
             >
-              <span className="muted">Aktivnost korisnika:</span>
-
-              <select
-                value={selectedUserId ?? ""}
-                onChange={(e) => setSelectedUserId(Number(e.target.value))}
-                className="select"
-                style={{ minWidth: 280 }}
-              >
-                {users.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.firstName || u.lastName
-                      ? `${u.firstName} ${u.lastName}`.trim() + ` — ${u.email}`
-                      : u.email}
-                  </option>
-                ))}
-              </select>
-            </div>
+              Priloži WFH zahtev
+            </Button>
           ) : null}
         </div>
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Button from "@/components/Button";
 import Modal from "@/components/Modal";
 import TextField from "@/components/TextField";
@@ -174,6 +175,33 @@ export default function CalendarPage() {
 
   const [exportBusy, setExportBusy] = useState(false);
   const [exportUserId, setExportUserId] = useState<string>("");
+
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const [wfhHint, setWfhHint] = useState<string>("");
+  const [wfhOpen, setWfhOpen] = useState(false);
+  const [wfhDate, setWfhDate] = useState("");
+  const [wfhReason, setWfhReason] = useState("");
+  const [wfhErr, setWfhErr] = useState("");
+  const [wfhBusy, setWfhBusy] = useState(false);
+
+  const isEmployee = user?.role === "EMPLOYEE";
+
+  useEffect(() => {
+    const wfh = searchParams.get("wfh");
+    if (wfh !== "1") return;
+
+    setWfhHint(
+      "Izaberi dan za koji želiš da pošalješ WFH zahtev. Opcija je dostupna samo kada su ispunjeni uslovi lošeg vremena (npr. temperatura ispod definisanog praga)."
+    );
+
+    const t = setTimeout(() => setWfhHint(""), 10000);
+
+    router.replace("/calendar");
+
+    return () => clearTimeout(t);
+  }, [searchParams, router]);
 
   useEffect(() => {
     if (!statusMsg) return;
@@ -352,6 +380,57 @@ export default function CalendarPage() {
   function holidayLabel(dateStr: string) {
     const name = holidayByDate[dateStr];
     return name ? `Neradni dan (${name})` : null;
+  }
+  function openWfhModal(defaultDate?: string) {
+    setWfhErr("");
+    setWfhReason("");
+    setWfhDate(defaultDate ?? weekStartStr);
+    setWfhOpen(true);
+  }
+
+  async function submitWfhRequest() {
+    setWfhErr("");
+
+    if (!wfhDate) {
+      setWfhErr("Datum je obavezan.");
+      return;
+    }
+    if (!isValidISODate(wfhDate)) {
+      setWfhErr("Datum mora biti validan i u formatu YYYY-MM-DD.");
+      return;
+    }
+
+    const hLabel = holidayLabel(wfhDate);
+    if (hLabel) {
+      setWfhErr(hLabel);
+      return;
+    }
+
+    setWfhBusy(true);
+    try {
+      const res = await fetch("/api/wfh-request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          date: wfhDate,
+          reason: wfhReason.trim() ? wfhReason.trim() : null,
+        }),
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        setWfhErr(data?.error ?? "Greška pri slanju WFH zahteva.");
+        return;
+      }
+
+      setWfhOpen(false);
+      setStatusType("info");
+      setStatusMsg("WFH zahtev je poslat (ili ažuriran).");
+    } finally {
+      setWfhBusy(false);
+    }
   }
 
   function openAddModal(defaultDate?: string) {
@@ -584,6 +663,17 @@ export default function CalendarPage() {
           className={`notice ${statusType === "error" ? "notice-error" : ""}`}
         >
           {statusMsg}
+        </div>
+      ) : null}
+      {wfhHint && isEmployee ? (
+        <div className="notice" style={{ marginTop: 10 }}>
+          {wfhHint}
+        </div>
+      ) : null}
+
+      {isEmployee ? (
+        <div className="row" style={{ gap: 10, marginTop: 10 }}>
+          <Button onClick={() => openWfhModal()}>Pošalji WFH zahtev</Button>
         </div>
       ) : null}
 
@@ -1089,6 +1179,42 @@ export default function CalendarPage() {
 
           <div className="modalActions">
             <Button onClick={() => setWeekPickerOpen(false)}>Zatvori</Button>
+          </div>
+        </div>
+      </Modal>
+      <Modal
+        open={wfhOpen}
+        title="WFH zahtev"
+        onClose={() => setWfhOpen(false)}
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <TextField
+            label="Datum (YYYY-MM-DD)"
+            value={wfhDate}
+            onChange={setWfhDate}
+            placeholder="2026-02-15"
+          />
+
+          <TextField
+            label="Dodatni razlog (opciono)"
+            value={wfhReason}
+            onChange={setWfhReason}
+            placeholder="npr. zdravstveni razlog / nemogućnost dolaska / logistika"
+          />
+
+          {wfhErr ? (
+            <div style={{ color: "#ff6b6b", fontSize: 13 }}>{wfhErr}</div>
+          ) : null}
+
+          <div className="hr" />
+
+          <div className="modalActions">
+            <Button disabled={wfhBusy} onClick={() => setWfhOpen(false)}>
+              Poništi
+            </Button>
+            <Button disabled={wfhBusy} onClick={submitWfhRequest}>
+              {wfhBusy ? "Slanje..." : "Pošalji"}
+            </Button>
           </div>
         </div>
       </Modal>

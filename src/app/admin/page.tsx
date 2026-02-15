@@ -6,6 +6,7 @@ import { useAuth } from "@/components/AuthProvider";
 import Button from "@/components/Button";
 import TextField from "@/components/TextField";
 import Modal from "@/components/Modal";
+import WfhRequestsAdminCard from "@/components/WfhRequestsAdminCard";
 
 type Role = "EMPLOYEE" | "MANAGER" | "ADMIN";
 
@@ -19,8 +20,23 @@ type UserDTO = {
   lastLoginAt: string | null;
 };
 
+type WfhReq = {
+  id: number;
+  date: string; // YYYY-MM-DD
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  reason: string | null;
+  precipSum: number | null;
+  windMax: number | null;
+  weatherCode: number | null;
+  user: { id: number; firstName: string; lastName: string; email: string };
+};
+
 function fullName(u: Pick<UserDTO, "firstName" | "lastName">) {
   return `${u.firstName} ${u.lastName}`.trim();
+}
+function userLabel(u: WfhReq["user"]) {
+  const full = `${u.firstName} ${u.lastName}`.trim();
+  return full ? full : u.email;
 }
 
 function fmtDateTime(iso: string | null) {
@@ -374,6 +390,8 @@ export default function AdminPage() {
     <main>
       <h1 className="h1">Admin</h1>
       <p className="h2">Upravljanje korisnicima (DB).</p>
+
+      <WfhRequestsAdminCard />
 
       {/* Top bar */}
       <div className="card" style={{ marginTop: 16 }}>

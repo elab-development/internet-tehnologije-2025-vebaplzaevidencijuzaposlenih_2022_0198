@@ -10,6 +10,7 @@ export default function Navbar() {
   const { user, logout } = useAuth();
 
   const isAdmin = user?.role === "ADMIN";
+  const isEmployee = user?.role === "EMPLOYEE";
   const pathname = usePathname();
 
   async function handleLogout() {
@@ -77,6 +78,16 @@ export default function Navbar() {
               >
                 Calendar
               </Link>
+              {isEmployee ? (
+                <Link
+                  href="/my-requests"
+                  className={`navLink ${
+                    pathname === "/my-requests" ? "navLink--active" : ""
+                  }`}
+                >
+                  Moji zahtevi
+                </Link>
+              ) : null}
 
               {isAdmin ? (
                 <Link
