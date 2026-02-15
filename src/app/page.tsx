@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
+import { getWeatherIcon } from "@/lib/weather.ui";
 
 export default function HomePage() {
   const slides = useMemo(
@@ -17,10 +18,48 @@ export default function HomePage() {
 
   const [index, setIndex] = useState(0);
   const { user } = useAuth();
+  type WeatherDay = {
+    date: string;
+    tempMax: number | null;
+    tempMin: number | null;
+    precipSum: number | null;
+    windMax: number | null;
+    weatherCode: number | null;
+  };
+
+  const [todayWeather, setTodayWeather] = useState<WeatherDay | null>(null);
+
+  function todayYMD() {
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  useEffect(() => {
+    async function loadTodayWeather() {
+      const today = todayYMD();
+
+      try {
+        const res = await fetch(`/api/weather?from=${today}&to=${today}`, {
+          credentials: "include",
+        });
+        if (!res.ok) return;
+
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          setTodayWeather(data[0]);
+        }
+      } catch {}
+    }
+
+    loadTodayWeather();
+  }, []);
 
   function greetName(user: { email?: string } | null) {
     if (!user?.email) return "korisniče";
-    return user.email.split("@")[0];
+    return user.email.split("@")[0].toUpperCase();
   }
 
   useEffect(() => {
@@ -74,6 +113,104 @@ export default function HomePage() {
             </div>
           </div>
         </div>
+      </div>
+      <div
+        className="card"
+        style={{
+          marginTop: 16,
+          padding: 24,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 30,
+        }}
+      >
+        {todayWeather ? (
+          <>
+            <div style={{ flexShrink: 0 }}>
+              <img
+                src={getWeatherIcon(todayWeather.weatherCode)}
+                alt="Weather"
+                style={{
+                  width: 100,
+                  height: 100,
+                  opacity: 0.95,
+                }}
+              />
+            </div>
+
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 18, marginBottom: 8 }}>
+                Danas:{" "}
+                <strong>
+                  {new Date(todayWeather.date).toLocaleDateString(
+                    "sr-Latn-RS",
+                    {
+                      weekday: "long",
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    }
+                  )}
+                </strong>
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  gap: 30,
+                  fontSize: 26,
+                  fontWeight: 600,
+                  marginBottom: 12,
+                }}
+              >
+                <div>
+                  H:{" "}
+                  {todayWeather.tempMax != null
+                    ? Math.round(todayWeather.tempMax)
+                    : "?"}
+                  °
+                </div>
+                <div>
+                  L:{" "}
+                  {todayWeather.tempMin != null
+                    ? Math.round(todayWeather.tempMin)
+                    : "?"}
+                  °
+                </div>
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  gap: 30,
+                  fontSize: 14,
+                  opacity: 0.85,
+                }}
+              >
+                <div>
+                  Padavine:{" "}
+                  <strong>
+                    {todayWeather.precipSum != null
+                      ? todayWeather.precipSum
+                      : "?"}{" "}
+                    mm
+                  </strong>
+                </div>
+
+                <div>
+                  Vetar:{" "}
+                  <strong>
+                    {todayWeather.windMax != null ? todayWeather.windMax : "?"}{" "}
+                    km/h
+                  </strong>
+                </div>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="muted">Učitavanje vremenskih podataka...</div>
+        )}
       </div>
 
       <div className="card" style={{ marginTop: 16 }}>

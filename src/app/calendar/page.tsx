@@ -5,6 +5,8 @@ import Button from "@/components/Button";
 import Modal from "@/components/Modal";
 import TextField from "@/components/TextField";
 import { addDays, startOfWeekMonday, toISODate } from "@/lib/date";
+import { getWeatherIcon } from "@/lib/weather.ui";
+
 import { useAuth } from "@/components/AuthProvider";
 
 const dayNames = ["Pon", "Uto", "Sre", "Čet", "Pet"];
@@ -20,6 +22,14 @@ type Activity = {
   endTime: string;
   user: { id: number; email: string; firstName: string; lastName: string };
   type: { id: number; name: string };
+};
+type WeatherDay = {
+  date: string; // YYYY-MM-DD
+  tempMax: number | null;
+  tempMin: number | null;
+  precipSum: number | null;
+  windMax: number | null;
+  weatherCode: number | null;
 };
 
 function ownerLabel(a: Activity) {
@@ -155,6 +165,8 @@ export default function CalendarPage() {
 
   const [holidays, setHolidays] = useState<Holiday[]>([]);
 
+  const [weather, setWeather] = useState<WeatherDay[]>([]);
+
   const [activities, setActivities] = useState<Activity[]>([]);
   const [statusMsg, setStatusMsg] = useState("");
   const [statusType, setStatusType] = useState<"info" | "error">("info");
@@ -272,6 +284,24 @@ export default function CalendarPage() {
       setUsers([]);
     }
   }
+  async function loadWeatherWeek() {
+    try {
+      const res = await fetch(
+        `/api/weather?from=${weekStartStr}&to=${weekEndStr}`,
+        { credentials: "include" }
+      );
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        setWeather([]);
+        return;
+      }
+
+      setWeather((data ?? []) as WeatherDay[]);
+    } catch {
+      setWeather([]);
+    }
+  }
 
   const yearStart = weekStart.getFullYear();
   const yearEnd = addDays(weekStart, 4).getFullYear();
@@ -286,6 +316,7 @@ export default function CalendarPage() {
 
   useEffect(() => {
     loadWeek();
+    loadWeatherWeek();
   }, [weekStartStr, weekEndStr]);
 
   useEffect(() => {
@@ -312,6 +343,11 @@ export default function CalendarPage() {
     for (const h of holidays) m[h.date] = h.name;
     return m;
   }, [holidays]);
+  const weatherByDate = useMemo(() => {
+    const m: Record<string, WeatherDay> = {};
+    for (const w of weather) m[w.date] = w;
+    return m;
+  }, [weather]);
 
   function holidayLabel(dateStr: string) {
     const name = holidayByDate[dateStr];
@@ -573,40 +609,109 @@ export default function CalendarPage() {
                   : undefined
               }
             >
-              <div className="row" style={{ justifyContent: "space-between" }}>
+              <div
+                className="row"
+                style={{
+                  justifyContent: "space-between",
+                  alignItems: "flex-start",
+                }}
+              >
                 <div className="dayTitle">
                   {dayNames[idx]} <span className="muted">({dateStr})</span>
-                  {isHoliday ? (
-                    <div
-                      style={{
-                        marginTop: 8,
-                        marginBottom: 10,
-                        display: "flex",
-                        justifyContent: "center",
-                      }}
-                    >
+                </div>
+
+                {/* WEATHER badge*/}
+                {(() => {
+                  const w = weatherByDate[dateStr];
+                  if (!w) {
+                    return (
                       <div
                         style={{
-                          color: "#fff",
-                          fontSize: 12,
-                          background: "rgba(255,255,255,0.08)",
-                          border: "1px solid rgba(255,255,255,0.14)",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
                           padding: "6px 10px",
                           borderRadius: 999,
-                          textAlign: "center",
-                          maxWidth: "100%",
+                          background: "rgba(255,255,255,0.04)",
+                          border: "1px solid rgba(255,255,255,0.10)",
+                          fontSize: 12,
                           whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
+                          opacity: 0.7,
                         }}
-                        title={`Neradni dan (${holidayName})`}
+                        title="Nema vremenskih podataka u bazi za ovaj dan (nije sync-ovano)."
                       >
-                        Neradni dan ({holidayName})
+                        <span className="muted">Weather: —</span>
                       </div>
+                    );
+                  }
+
+                  const H = w.tempMax == null ? "?" : Math.round(w.tempMax);
+                  const L = w.tempMin == null ? "?" : Math.round(w.tempMin);
+
+                  return (
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        padding: "8px 6px",
+                        borderRadius: 999,
+                        background: "rgba(255,255,255,0.06)",
+                        border: "1px solid rgba(255,255,255,0.12)",
+                        fontSize: 13,
+                        whiteSpace: "nowrap",
+                        marginTop: 0,
+                      }}
+                      title={`Padavine: ${w.precipSum ?? "?"}mm | Vetar: ${
+                        w.windMax ?? "?"
+                      }`}
+                    >
+                      <img
+                        src={getWeatherIcon(w.weatherCode)}
+                        alt="weather"
+                        style={{ width: 18, height: 18, opacity: 0.9 }}
+                      />
+                      <span>
+                        H: <strong>{H}</strong>°
+                      </span>
+                      <span style={{ opacity: 0.7 }}>|</span>
+                      <span>
+                        L: <strong>{L}</strong>°
+                      </span>
                     </div>
-                  ) : null}
-                </div>
+                  );
+                })()}
+                {isHoliday ? (
+                  <div
+                    style={{
+                      marginTop: 8,
+                      marginBottom: 10,
+                      display: "flex",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <div
+                      style={{
+                        color: "#fff",
+                        fontSize: 12,
+                        background: "rgba(255,255,255,0.08)",
+                        border: "1px solid rgba(255,255,255,0.14)",
+                        padding: "6px 10px",
+                        borderRadius: 999,
+                        textAlign: "center",
+                        maxWidth: "100%",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                      title={`Neradni dan (${holidayName})`}
+                    >
+                      Neradni dan ({holidayName})
+                    </div>
+                  </div>
+                ) : null}
               </div>
+
               {canEditActivities ? (
                 <span title={holidayLabel(dateStr) ?? "Dodaj aktivnost"}>
                   <Button

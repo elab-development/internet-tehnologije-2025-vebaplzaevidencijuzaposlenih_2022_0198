@@ -369,11 +369,10 @@ input:focus {
   color: var(--danger-text);
 }
 .notice {
-  border: 1px solid rgba(215, 219, 226, 0.95);
-  background: rgba(236, 239, 243, 0.9);
-  border-radius: 12px;
-  padding: 10px 12px;
-  font-size: 13px;
+  background: #a5acb6;
+
+  padding: 12px 14px;
+  font-size: 14px;
   color: var(--foreground);
 }
 
@@ -481,7 +480,7 @@ input:focus {
   border-radius: 999px;
   border: 1px solid rgba(215, 219, 226, 0.95);
   background: rgba(236, 239, 243, 0.9);
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 650;
   color: var(--foreground);
 }

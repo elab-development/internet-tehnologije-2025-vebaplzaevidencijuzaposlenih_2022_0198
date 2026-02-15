@@ -88,4 +88,19 @@ model Holiday {
   @@unique([date, country, name])
   @@index([date, country])
 }
+model WeatherDaily {
+  id           Int      @id @default(autoincrement())
+  locationKey  String
+  date         DateTime 
+  tempMax      Float?
+  tempMin      Float?
+  precipSum    Float?
+  windMax      Float?
+  weatherCode  Int?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([locationKey, date])
+  @@index([date])
+}
 
