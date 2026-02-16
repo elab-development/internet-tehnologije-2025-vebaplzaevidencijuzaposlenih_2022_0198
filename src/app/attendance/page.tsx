@@ -234,19 +234,26 @@ export default function AttendancePage() {
                   value={selectedUserId ?? ""}
                   onChange={(e) => setSelectedUserId(Number(e.target.value))}
                   className="select"
-                  style={{ minWidth: 280 }}
+                  style={{ minWidth: 150 }}
                 >
                   {users.map((u) => (
                     <option key={u.id} value={u.id}>
                       {u.firstName || u.lastName
-                        ? `${u.firstName} ${u.lastName}`.trim() +
-                          ` — ${u.email}`
+                        ? `${u.firstName} ${u.lastName}`.trim() + "      ▾"
                         : u.email}
                     </option>
                   ))}
                 </select>
               </div>
             ) : null}
+            <span className="muted">Statistika korisnika:</span>
+            <Button
+              onClick={() => {
+                router.push("/stats/attendance");
+              }}
+            >
+              Statistika
+            </Button>
           </div>
           {isEmployee ? (
             <Button
