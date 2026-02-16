@@ -1,0 +1,50 @@
+# Design System — Evidencija zaposlenih
+
+## Typeface
+
+- Primary: system-ui stack (Apple-like):
+  ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, Arial, "Apple Color Emoji", "Segoe UI Emoji"
+- Use font-smoothing where possible.
+
+## Theme
+
+- Default: Light, high contrast, “Apple-like” clean surfaces
+- Emphasis on subtle borders + soft shadows + restrained accent usage
+
+## Color tokens (semantic)
+
+- bg: app background
+- surface: cards/panels/modals
+- surface2: elevated surface/hover
+- border: subtle separators
+- text: primary text
+- muted: secondary text
+- accent: primary action / highlights
+- accent2: secondary accent (rare)
+- danger: destructive actions
+- success/warn: status indications (use sparingly)
+
+## Layout & spacing
+
+- Use consistent spacing scale (Tailwind default)
+- Containers: max width ~ 1100–1200px, centered, generous padding
+- Cards: 16px–20px padding, radius 16px, subtle border
+
+## Components
+
+- Buttons:
+  - Primary: accent bg, white text
+  - Secondary: surface bg + border
+  - Destructive: danger
+  - States: hover, active, disabled, focus ring
+- Inputs:
+  - Surface bg, border, focus ring (accent)
+  - Clear error state (danger border + helper text)
+- Modals:
+  - Surface panel, shadow, backdrop blur if available
+- Tables/lists:
+  - Row hover, subtle dividers
+
+## Interaction
+
+- No animation-heavy UI. Use subtle transitions only (150–200ms).
