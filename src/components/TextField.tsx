@@ -18,11 +18,8 @@ export default function TextField({
   onKeyDown,
 }: TextFieldProps) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      <label style={{ fontWeight: 520, color: "inherit", fontSize: 15 }}>
-        {label}
-      </label>
-
+    <div className="textFieldWrap" style={{ gap: 8 }}>
+      <label style={{ fontWeight: 600, fontSize: 14 }}>{label}</label>
       <input
         type={type}
         value={value}
@@ -30,16 +27,16 @@ export default function TextField({
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={onKeyDown}
         style={{
-          border: error ? "1px solid rgba(200, 60, 60, 0.70)" : undefined,
-          boxShadow: error ? "0 0 0 4px rgba(200, 60, 60, 0.10)" : undefined,
+          padding: "12px 14px",
+          minHeight: 44,
+          borderRadius: 10,
+          border: error ? "1px solid rgba(200, 60, 60, 0.7)" : "1px solid #d7dbe2",
+          boxShadow: error ? "0 0 0 3px rgba(200, 60, 60, 0.12)" : "0 1px 2px rgba(15, 23, 42, 0.04)",
+          fontSize: 15,
+          ...(error ? {} : { transition: "border-color 0.2s ease, box-shadow 0.2s ease" }),
         }}
       />
-
-      {error ? (
-        <span style={{ color: "rgba(200, 60, 60, 0.95)", fontSize: 12 }}>
-          {error}
-        </span>
-      ) : null}
+      {error ? <span className="errorText" style={{ fontSize: 13 }}>{error}</span> : null}
     </div>
   );
 }

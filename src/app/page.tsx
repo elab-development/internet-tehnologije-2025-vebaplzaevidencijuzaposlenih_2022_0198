@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { getWeatherIcon } from "@/lib/weather.ui";
+import UserAvatar from "@/components/UserAvatar";
 
 export default function HomePage() {
   const slides = useMemo(
@@ -71,21 +72,51 @@ export default function HomePage() {
 
   return (
     <main>
-      <div className="card" style={{ padding: 22 }}>
+      {/* Hero: headline + supporting text + primary action */}
+      <section
+        className="card homeHeroCard"
+        style={{
+          padding: "40px 36px 36px",
+          borderLeft: "4px solid #4f46e5",
+          boxShadow: "0 4px 24px rgba(15, 23, 42, 0.12)",
+        }}
+      >
         {user ? (
-          <div className="welcomeLine">
-            Dobrodošao, <b>{greetName(user)}</b>
-            <p style={{ fontSize: 14 }}>Ulogovan si kao {user.role}</p>
+          <div className="flex items-center gap-x-4 welcomeLine">
+            <UserAvatar email={user.email} size={40} />
+            <div>
+              Dobrodošao, <b>{greetName(user)}</b>
+              <p style={{ fontSize: 14 }}>Ulogovan si kao {user.role}</p>
+            </div>
           </div>
         ) : null}
 
-        <h1 className="h1" style={{ fontSize: 34 }}>
+        <h1 className="h1 homeTitle" style={{ fontSize: 32, marginBottom: 12 }}>
           Evidencija prisustva zaposlenih
         </h1>
 
-        <p className="h2" style={{ marginTop: 6 }}>
+        <p className="h2" style={{ marginTop: 0, marginBottom: 24, fontSize: 17 }}>
           Jednostavan sistem za praćenje dolazaka, odlazaka i aktivnosti.
         </p>
+
+        <div style={{ marginBottom: 28 }}>
+          <Link
+            href={user ? "/attendance" : "/login"}
+            style={{ textDecoration: "none" }}
+          >
+            <span
+              className="btn btn-primary"
+              style={{
+                padding: "14px 28px",
+                fontSize: 16,
+                fontWeight: 600,
+                display: "inline-block",
+              }}
+            >
+              {user ? "Evidentiraj prisustvo" : "Prijavi se"}
+            </span>
+          </Link>
+        </div>
 
         <div className="homeHighlights">
           <span className="chip">Brz check-in / check-out</span>
@@ -93,7 +124,7 @@ export default function HomePage() {
           <span className="chip">Uloge i dozvole</span>
         </div>
 
-        <div className="homeFeatures">
+        <div className="homeFeatures" style={{ marginTop: 28 }}>
           <div className="featureCard">
             <div className="featureTitle">Prisustvo</div>
             <div className="muted">
@@ -113,16 +144,20 @@ export default function HomePage() {
             </div>
           </div>
         </div>
-      </div>
-      <div
-        className="card"
+      </section>
+
+      {/* Section 2: Weather */}
+      <section
+        className="card homeWeatherCard"
         style={{
-          marginTop: 16,
-          padding: 24,
+          marginTop: 28,
+          padding: 28,
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           gap: 30,
+          border: "1px solid #d7dbe2",
+          boxShadow: "0 2px 16px rgba(15, 23, 42, 0.08)",
         }}
       >
         {todayWeather ? (
@@ -211,17 +246,28 @@ export default function HomePage() {
         ) : (
           <div className="muted">Učitavanje vremenskih podataka...</div>
         )}
-      </div>
+      </section>
 
-      <div className="card" style={{ marginTop: 16 }}>
-        <div className="sectionTitle">O kompaniji</div>
-        <p className="muted" style={{ marginTop: 6 }}>
+      {/* Section 3: O kompaniji */}
+      <section
+        className="card"
+        style={{
+          marginTop: 28,
+          padding: 28,
+          border: "1px solid #d7dbe2",
+          boxShadow: "0 2px 16px rgba(15, 23, 42, 0.08)",
+        }}
+      >
+        <div className="sectionTitle" style={{ fontSize: 20, marginBottom: 14 }}>
+          O kompaniji
+        </div>
+        <p className="muted" style={{ marginTop: 8, lineHeight: 1.6 }}>
           Naša kompanija pruža jednostavno rešenje za evidenciju prisustva i
           organizaciju rada zaposlenih. Sistem omogućava uloge korisnika,
           transparentnu istoriju dolazaka/odlazaka i pregled aktivnosti u
           kalendaru.
         </p>
-        <p className="muted" style={{ marginTop: 6 }}>
+        <p className="muted" style={{ marginTop: 12, lineHeight: 1.6 }}>
           Sistem je implementiran kao moderna web aplikacija sa jasno
           razdvojenim frontend i backend slojevima. Frontend je razvijen u
           Next.js (React) okruženju i fokusiran je na preglednost, brzinu i
@@ -235,9 +281,18 @@ export default function HomePage() {
           funkcionalnosti i prilagođavanje različitim organizacionim
           strukturama.
         </p>
-      </div>
-      <div className="card" style={{ marginTop: 16, padding: 16 }}>
-        <div className="sectionTitle" style={{ marginBottom: 10 }}>
+      </section>
+      {/* Section 4: Galerija */}
+      <section
+        className="card"
+        style={{
+          marginTop: 28,
+          padding: 28,
+          border: "1px solid #d7dbe2",
+          boxShadow: "0 2px 16px rgba(15, 23, 42, 0.08)",
+        }}
+      >
+        <div className="sectionTitle" style={{ marginBottom: 16, fontSize: 20 }}>
           Galerija (slideshow)
         </div>
 
@@ -255,7 +310,7 @@ export default function HomePage() {
             }
             aria-label="Previous"
           >
-            {"<"}
+            ‹
           </button>
 
           <button
@@ -263,7 +318,7 @@ export default function HomePage() {
             onClick={() => setIndex((i) => (i + 1) % slides.length)}
             aria-label="Next"
           >
-            {">"}
+            ›
           </button>
 
           <div className="slideshowDots">
@@ -277,7 +332,7 @@ export default function HomePage() {
             ))}
           </div>
         </div>
-      </div>
+      </section>
     </main>
   );
 }

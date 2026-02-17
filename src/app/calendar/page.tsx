@@ -225,6 +225,11 @@ export default function CalendarPage() {
     return Array.from({ length: 5 }, (_, i) => addDays(weekStart, i));
   }, [weekStart]);
 
+  const currentWeekMondayYMD = useMemo(
+    () => ymdLocal(startOfWeekMonday(new Date())),
+    []
+  );
+
   async function loadWeek() {
     try {
       const res = await fetch(
@@ -616,11 +621,13 @@ export default function CalendarPage() {
 
   return (
     <main>
-      <h1 className="h1">Kalendar Aktivnosti</h1>
-      <p className="h2">Pregled aktivnosti tokom radne nedelje (pon–pet).</p>
+      <h1 className="h1" style={{ fontSize: 28, marginBottom: 6 }}>Kalendar Aktivnosti</h1>
+      <p className="h2" style={{ marginBottom: 24, fontSize: 16 }}>
+        Pregled aktivnosti tokom radne nedelje (pon–pet).
+      </p>
 
-      <div className="weekHeader">
-        <div className="row">
+      <div className="weekHeader" style={{ marginTop: 24 }}>
+        <div className="row" style={{ flex: 1, flexWrap: "wrap" }}>
           <Button onClick={() => setWeekStart(addDays(weekStart, -7))}>
             Prošla ned.
           </Button>
@@ -641,6 +648,12 @@ export default function CalendarPage() {
               </Button>
             </span>
           ) : null}
+
+          {isEmployee ? (
+            <div style={{ marginLeft: "auto" }}>
+              <Button onClick={() => openWfhModal()}>Pošalji WFH zahtev</Button>
+            </div>
+          ) : null}
         </div>
 
         <span
@@ -660,7 +673,12 @@ export default function CalendarPage() {
       </div>
       {statusMsg ? (
         <div
-          className={`notice ${statusType === "error" ? "notice-error" : ""}`}
+          className={`notice ${statusType === "error" ? "notice-error" : ""} ${statusType === "info" ? "notice-success" : ""}`}
+          style={
+            statusType === "info"
+              ? { marginTop: 16, marginBottom: 0 }
+              : undefined
+          }
         >
           {statusMsg}
         </div>
@@ -668,12 +686,6 @@ export default function CalendarPage() {
       {wfhHint && isEmployee ? (
         <div className="notice" style={{ marginTop: 10 }}>
           {wfhHint}
-        </div>
-      ) : null}
-
-      {isEmployee ? (
-        <div className="row" style={{ gap: 10, marginTop: 10 }}>
-          <Button onClick={() => openWfhModal()}>Pošalji WFH zahtev</Button>
         </div>
       ) : null}
 
@@ -692,11 +704,18 @@ export default function CalendarPage() {
               style={
                 isHoliday
                   ? {
-                      background: "rgba(0,0,0,0.55)",
-                      border: "1px solid rgba(255,255,255,0.10)",
+                      background: "#e5e7eb",
+                      border: "1px solid #d1d5db",
                       position: "relative",
+                      padding: 20,
+                      minHeight: 280,
                     }
-                  : undefined
+                  : {
+                      border: "2px solid #d7dbe2",
+                      boxShadow: "0 4px 20px rgba(15, 23, 42, 0.08)",
+                      padding: 20,
+                      minHeight: 280,
+                    }
               }
             >
               <div
@@ -706,7 +725,16 @@ export default function CalendarPage() {
                   alignItems: "flex-start",
                 }}
               >
-                <div className="dayTitle">
+                <div
+                  className="dayTitle"
+                  style={{
+                    fontSize: 16,
+                    fontWeight: 700,
+                    marginBottom: 12,
+                    paddingBottom: 8,
+                    borderBottom: "2px solid #e5e7eb",
+                  }}
+                >
                   {dayNames[idx]} <span className="muted">({dateStr})</span>
                 </div>
 
@@ -722,11 +750,11 @@ export default function CalendarPage() {
                           gap: 8,
                           padding: "6px 10px",
                           borderRadius: 999,
-                          background: "rgba(255,255,255,0.04)",
-                          border: "1px solid rgba(255,255,255,0.10)",
+                          background: isHoliday ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.04)",
+                          border: isHoliday ? "1px solid #d1d5db" : "1px solid rgba(255,255,255,0.10)",
                           fontSize: 12,
                           whiteSpace: "nowrap",
-                          opacity: 0.7,
+                          opacity: isHoliday ? 1 : 0.7,
                         }}
                         title="Nema vremenskih podataka u bazi za ovaj dan (nije sync-ovano)."
                       >
@@ -746,8 +774,8 @@ export default function CalendarPage() {
                         gap: 8,
                         padding: "8px 6px",
                         borderRadius: 999,
-                        background: "rgba(255,255,255,0.06)",
-                        border: "1px solid rgba(255,255,255,0.12)",
+                        background: isHoliday ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.06)",
+                        border: isHoliday ? "1px solid #d1d5db" : "1px solid rgba(255,255,255,0.12)",
                         fontSize: 13,
                         whiteSpace: "nowrap",
                         marginTop: 0,
@@ -782,10 +810,11 @@ export default function CalendarPage() {
                   >
                     <div
                       style={{
-                        color: "#fff",
+                        color: "#374151",
                         fontSize: 12,
-                        background: "rgba(255,255,255,0.08)",
-                        border: "1px solid rgba(255,255,255,0.14)",
+                        fontWeight: 600,
+                        background: "rgba(255,255,255,0.8)",
+                        border: "1px solid #d1d5db",
                         padding: "6px 10px",
                         borderRadius: 999,
                         textAlign: "center",
@@ -814,10 +843,20 @@ export default function CalendarPage() {
               ) : null}
 
               {list.length === 0 ? (
-                <div className="muted">Nema aktivnosti.</div>
+                <div className="muted" style={{ padding: 12 }}>Nema aktivnosti.</div>
               ) : (
                 list.map((a) => (
-                  <div key={a.id} className="eventCard">
+                  <div
+                    key={a.id}
+                    className="eventCard"
+                    style={{
+                      padding: 14,
+                      marginTop: 12,
+                      border: "1px solid #d7dbe2",
+                      borderRadius: 12,
+                      boxShadow: "0 2px 8px rgba(15, 23, 42, 0.04)",
+                    }}
+                  >
                     <p className="eventTitle">{a.name}</p>
 
                     <div className="eventTime">
@@ -903,7 +942,7 @@ export default function CalendarPage() {
         title={editingId ? "Izmeni aktivnost" : "Dodaj aktivnost"}
         onClose={() => setOpen(false)}
       >
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
           <TextField
             label="Datum (YYYY-MM-DD)"
             value={formDate}
@@ -962,11 +1001,11 @@ export default function CalendarPage() {
 
           <div className="hr" />
 
-          <div className="modalActions">
+          <div className="modalActions" style={{ marginTop: 20 }}>
             <Button disabled={busy} onClick={() => setOpen(false)}>
               Poništi
             </Button>
-            <Button disabled={busy} onClick={handleSave}>
+            <Button variant="primary" disabled={busy} onClick={handleSave}>
               Sačuvaj
             </Button>
           </div>
@@ -1005,15 +1044,7 @@ export default function CalendarPage() {
               const weeks = buildMonthWeeks(year, month0);
 
               return (
-                <div
-                  key={month0}
-                  style={{
-                    border: "1px solid #161616",
-                    borderRadius: 12,
-                    padding: 10,
-                    background: "rgba(255,255,255,0.02)",
-                  }}
-                >
+                <div key={month0} className="weekPickerMonth">
                   <div
                     style={{
                       display: "flex",
@@ -1071,20 +1102,17 @@ export default function CalendarPage() {
                       return (
                         <div
                           key={mondayYMD}
+                          className="weekPickerWeekRow"
                           style={{
-                            display: "grid",
-                            gridTemplateColumns: "34px repeat(7, 1fr)",
-                            gap: 4,
-                            alignItems: "center",
-                            padding: 4,
-                            borderRadius: 10,
                             background: isSelected
-                              ? "rgba(255,255,255,0.08)"
+                              ? "rgba(79, 70, 229, 0.08)"
+                              : mondayYMD === currentWeekMondayYMD
+                              ? "rgba(0, 0, 0, 0.05)"
                               : isHover
-                              ? "rgba(255,255,255,0.05)"
+                              ? "rgba(236, 239, 243, 0.8)"
                               : "transparent",
                             border: isSelected
-                              ? "1px solid rgba(255,255,255,0.15)"
+                              ? "1px solid rgba(79, 70, 229, 0.3)"
                               : "1px solid transparent",
                           }}
                           onMouseEnter={() => setHoverWeekStart(mondayYMD)}
@@ -1093,20 +1121,18 @@ export default function CalendarPage() {
                           {/* Arrow */}
                           <button
                             type="button"
+                            className="weekPickerSelectBtn"
+                            style={{
+                              background: isSelected
+                                ? "rgba(79, 70, 229, 0.15)"
+                                : "transparent",
+                              borderColor: isSelected
+                                ? "rgba(79, 70, 229, 0.4)"
+                                : undefined,
+                            }}
                             onClick={() => {
                               setWeekStart(monday);
                               setWeekPickerOpen(false);
-                            }}
-                            style={{
-                              width: 34,
-                              height: 28,
-                              borderRadius: 8,
-                              border: "1px solid #2a2a2a",
-                              background: isSelected
-                                ? "#1b1b1b"
-                                : "transparent",
-                              color: "inherit",
-                              cursor: "pointer",
                             }}
                             aria-label={`Izaberi nedelju od ${mondayYMD}`}
                             title={`Izaberi nedelju (${mondayYMD})`}
@@ -1142,12 +1168,12 @@ export default function CalendarPage() {
                                   fontSize: 12,
                                   opacity: inMonth ? 1 : 0.35,
                                   background: isWorkSelected
-                                    ? "rgba(255,255,255,0.10)"
+                                    ? "rgba(79, 70, 229, 0.12)"
                                     : isWorkHover
-                                    ? "rgba(255,255,255,0.06)"
-                                    : "rgba(255,255,255,0.02)",
+                                    ? "rgba(236, 239, 243, 0.9)"
+                                    : "rgba(246, 247, 249, 0.5)",
                                   border: isWorkSelected
-                                    ? "1px solid rgba(255,255,255,0.18)"
+                                    ? "1px solid rgba(79, 70, 229, 0.35)"
                                     : "1px solid transparent",
                                 }}
                               >
@@ -1187,7 +1213,7 @@ export default function CalendarPage() {
         title="WFH zahtev"
         onClose={() => setWfhOpen(false)}
       >
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
           <TextField
             label="Datum (YYYY-MM-DD)"
             value={wfhDate}
@@ -1208,11 +1234,11 @@ export default function CalendarPage() {
 
           <div className="hr" />
 
-          <div className="modalActions">
+          <div className="modalActions" style={{ marginTop: 20 }}>
             <Button disabled={wfhBusy} onClick={() => setWfhOpen(false)}>
               Poništi
             </Button>
-            <Button disabled={wfhBusy} onClick={submitWfhRequest}>
+            <Button variant="primary" disabled={wfhBusy} onClick={submitWfhRequest}>
               {wfhBusy ? "Slanje..." : "Pošalji"}
             </Button>
           </div>

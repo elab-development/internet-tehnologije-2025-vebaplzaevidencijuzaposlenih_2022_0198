@@ -94,12 +94,12 @@ export default function WfhRequestsAdminCard() {
   );
 
   return (
-    <div className="card" style={{ marginTop: 16 }}>
+    <div className="card" style={{ marginTop: 20 }}>
       <div
         style={{
           display: "flex",
           justifyContent: "space-between",
-          gap: 10,
+          gap: 12,
           alignItems: "baseline",
         }}
       >
@@ -126,13 +126,9 @@ export default function WfhRequestsAdminCard() {
         {pending.length === 0 ? (
           <div className="muted">Nema novih zahteva.</div>
         ) : (
-          <div style={{ display: "grid", gap: 10 }}>
+          <div style={{ display: "grid", gap: 12 }}>
             {pending.map((r) => (
-              <div
-                key={r.id}
-                className="card"
-                style={{ padding: 12, background: "rgba(255,255,255,0.02)" }}
-              >
+              <div key={r.id} className="card wfhRequestCard">
                 <div
                   style={{
                     display: "flex",
@@ -208,13 +204,9 @@ export default function WfhRequestsAdminCard() {
             Još nema obrađenih zahteva.
           </div>
         ) : (
-          <div style={{ display: "grid", gap: 10, marginTop: 10 }}>
+          <div style={{ display: "grid", gap: 12, marginTop: 12 }}>
             {decided.map((r) => (
-              <div
-                key={r.id}
-                className="card"
-                style={{ padding: 12, background: "rgba(255,255,255,0.01)" }}
-              >
+              <div key={r.id} className="card wfhRequestCard wfhRequestCardDecided">
                 <div
                   style={{
                     display: "flex",

@@ -122,8 +122,8 @@ export default function AttendanceStatsPage() {
       <h1 className="h1">Statistika prisustva</h1>
       <p className="h2">Google Charts vizualizacija (role-based).</p>
 
-      <div className="card" style={{ marginTop: 16, padding: 12 }}>
-        <div className="row" style={{ gap: 10, flexWrap: "wrap" }}>
+      <div className="card" style={{ marginTop: 20, padding: 18 }}>
+        <div className="row" style={{ gap: 12, flexWrap: "wrap" }}>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <div>
               <div className="muted" style={{ fontSize: 13, marginBottom: 6 }}>
@@ -190,9 +190,9 @@ export default function AttendanceStatsPage() {
       </div>
 
       {!data ? null : (
-        <div style={{ display: "grid", gap: 16, marginTop: 16 }}>
+        <div style={{ display: "grid", gap: 18, marginTop: 20 }}>
           {/* PIE */}
-          <div className="card" style={{ padding: 12 }}>
+          <div className="card" style={{ padding: 18 }}>
             <div className="sectionTitle">Udeo statusa</div>
             {pieData ? (
               <Chart
@@ -217,7 +217,7 @@ export default function AttendanceStatsPage() {
             ) : null}
           </div>
 
-          <div className="card" style={{ padding: 12 }}>
+          <div className="card" style={{ padding: 18 }}>
             <div className="sectionTitle">Pregled po mesecima</div>
             {monthData ? (
               <Chart

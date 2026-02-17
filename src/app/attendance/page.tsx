@@ -186,8 +186,15 @@ export default function AttendancePage() {
       <h1 className="h1">Prisustvo</h1>
       <p className="h2">Evidentiraj dolazak/odlazak.</p>
 
-      <div className="card" style={{ marginTop: 16 }}>
-        <h2 style={{ margin: 0, fontSize: 16 }}>
+      <div
+        className="card"
+        style={{
+          marginTop: 20,
+          borderLeft: "4px solid #4f46e5",
+          boxShadow: "0 4px 24px rgba(15, 23, 42, 0.12)",
+        }}
+      >
+        <h2 className="sectionTitle" style={{ margin: 0, fontSize: 16 }}>
           Danas: {new Date().toLocaleDateString("sr-RS")}
         </h2>
         <div
@@ -272,52 +279,33 @@ export default function AttendancePage() {
         </div>
       </div>
 
-      <div className="card" style={{ marginTop: 16 }}>
-        <h2 style={{ margin: 0, fontSize: 16 }}>Istorija poslednjih 30 dana</h2>
+      <div className="card" style={{ marginTop: 20 }}>
+        <h2 className="sectionTitle" style={{ margin: 0, fontSize: 16 }}>
+          Istorija poslednjih 30 dana
+        </h2>
 
         {loading ? (
           <div className="muted" style={{ marginTop: 12 }}>
             Učitavam...
           </div>
         ) : (
-          <div style={{ overflowX: "auto", marginTop: 12 }}>
-            <table
-              style={{
-                width: "100%",
-                borderCollapse: "collapse",
-                minWidth: 520,
-              }}
-            >
+          <div className="tableWrap">
+            <table className="attendanceTable">
               <thead>
-                <tr
-                  style={{
-                    textAlign: "left",
-                    borderBottom: "1px solid #2a2a2a",
-                  }}
-                >
-                  <th style={{ padding: "10px 8px" }}>Datum</th>
-                  <th style={{ padding: "10px 8px" }}>Dolazak</th>
-                  <th style={{ padding: "10px 8px" }}>Odlazak</th>
-                  <th style={{ padding: "10px 8px" }}>Status</th>
+                <tr>
+                  <th>Datum</th>
+                  <th>Dolazak</th>
+                  <th>Odlazak</th>
+                  <th>Status</th>
                 </tr>
               </thead>
               <tbody>
                 {records.map((r) => (
-                  <tr
-                    key={r.date}
-                    style={{ borderBottom: "1px solid #161616" }}
-                  >
-                    <td style={{ padding: "10px 8px" }}>{r.date}</td>
-
-                    <td style={{ padding: "10px 8px" }}>
-                      {r.checkInAt ?? "-"}
-                    </td>
-
-                    <td style={{ padding: "10px 8px" }}>
-                      {r.checkOutAt ?? "-"}
-                    </td>
-
-                    <td style={{ padding: "10px 8px" }}>
+                  <tr key={r.date}>
+                    <td>{r.date}</td>
+                    <td>{r.checkInAt ?? "-"}</td>
+                    <td>{r.checkOutAt ?? "-"}</td>
+                    <td>
                       <span className={badgeClass(r.status)}>{r.status}</span>
                     </td>
                   </tr>
@@ -325,11 +313,7 @@ export default function AttendancePage() {
 
                 {records.length === 0 ? (
                   <tr>
-                    <td
-                      colSpan={3}
-                      className="muted"
-                      style={{ padding: "12px 8px" }}
-                    >
+                    <td colSpan={4} className="muted">
                       Još nema zapisa.
                     </td>
                   </tr>

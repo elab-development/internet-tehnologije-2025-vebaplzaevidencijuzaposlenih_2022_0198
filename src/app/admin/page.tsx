@@ -7,6 +7,7 @@ import Button from "@/components/Button";
 import TextField from "@/components/TextField";
 import Modal from "@/components/Modal";
 import WfhRequestsAdminCard from "@/components/WfhRequestsAdminCard";
+import UserAvatar from "@/components/UserAvatar";
 
 type Role = "EMPLOYEE" | "MANAGER" | "ADMIN";
 
@@ -330,47 +331,94 @@ export default function AdminPage() {
   if (!user) return null;
   if (user.role !== "ADMIN") return null;
 
+  function roleBadgeStyle(role: Role) {
+    if (role === "ADMIN")
+      return { background: "#4f46e5", color: "#fff", padding: "4px 10px", borderRadius: 8, fontSize: 12, fontWeight: 600 };
+    if (role === "MANAGER")
+      return { background: "rgba(79, 70, 229, 0.15)", color: "#4338ca", padding: "4px 10px", borderRadius: 8, fontSize: 12, fontWeight: 600 };
+    return { background: "#e5e7eb", color: "#374151", padding: "4px 10px", borderRadius: 8, fontSize: 12, fontWeight: 600 };
+  }
+
   function UserCardRow({ u }: { u: UserDTO }) {
     return (
       <div
-        className="card"
+        className="card adminUserCard"
         style={{
-          marginTop: 10,
-          padding: 12,
           display: "grid",
-          gap: 8,
+          gap: 14,
+          padding: "18px 20px",
+          border: "1px solid #d7dbe2",
+          borderRadius: 12,
+          boxShadow: "0 2px 8px rgba(15, 23, 42, 0.06)",
+          marginTop: 14,
         }}
       >
         <div
-          style={{ display: "flex", justifyContent: "space-between", gap: 10 }}
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            gap: 12,
+          }}
         >
-          <div style={{ minWidth: 0 }}>
-            <div
-              style={{
-                fontWeight: 600,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                letterSpacing: "-0.01em",
-              }}
-            >
-              {fullName(u)}
-            </div>
-            <div
-              className="muted"
-              style={{ overflow: "hidden", textOverflow: "ellipsis" }}
-            >
-              {u.email}
+          <div style={{ minWidth: 0 }} className="flex items-center gap-x-4">
+            <UserAvatar
+              firstName={u.firstName}
+              lastName={u.lastName}
+              email={u.email}
+              size={36}
+            />
+            <div>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  flexWrap: "wrap",
+                }}
+              >
+                <span
+                  style={{
+                    fontWeight: 700,
+                    fontSize: 16,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {fullName(u)}
+                </span>
+                <span style={roleBadgeStyle(u.role)}>{u.role}</span>
+              </div>
+              <div
+                className="muted"
+                style={{
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  marginTop: 4,
+                  fontSize: 14,
+                }}
+              >
+                {u.email}
+              </div>
             </div>
           </div>
 
-          <div style={{ textAlign: "right" }}>
-            <div className="muted" style={{ marginTop: 2, fontSize: 12 }}>
+          <div style={{ textAlign: "right", flexShrink: 0 }}>
+            <div className="muted" style={{ fontSize: 12 }}>
               Last login: {fmtDateTime(u.lastLoginAt)}
             </div>
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <div
+          style={{
+            display: "flex",
+            gap: 10,
+            flexWrap: "wrap",
+            paddingTop: 4,
+            borderTop: "1px solid #e5e7eb",
+          }}
+        >
           <Button onClick={() => openEdit(u)}>Izmeni</Button>
           <Button onClick={() => setDeleteUser(u)}>Obriši</Button>
           <Button
@@ -388,17 +436,37 @@ export default function AdminPage() {
 
   return (
     <main>
-      <h1 className="h1">Admin</h1>
-      <p className="h2">Upravljanje korisnicima (DB).</p>
+      {/* Dashboard header */}
+      <header
+        style={{
+          marginBottom: 28,
+          paddingBottom: 20,
+          borderBottom: "2px solid #e5e7eb",
+        }}
+      >
+        <h1 className="h1" style={{ fontSize: 28, marginBottom: 6 }}>Admin</h1>
+        <p className="h2" style={{ fontSize: 16, margin: 0 }}>
+          Upravljanje korisnicima (DB).
+        </p>
+      </header>
 
       <WfhRequestsAdminCard />
 
-      {/* Top bar */}
-      <div className="card" style={{ marginTop: 16 }}>
+      {/* Top bar: search + create */}
+      <div
+        className="card"
+        style={{
+          marginTop: 24,
+          padding: 24,
+          border: "1px solid #d7dbe2",
+          borderLeft: "4px solid #4f46e5",
+          boxShadow: "0 4px 24px rgba(15, 23, 42, 0.12)",
+        }}
+      >
         <div
           style={{
             display: "flex",
-            gap: 12,
+            gap: 16,
             alignItems: "flex-end",
             flexWrap: "wrap",
           }}
@@ -412,12 +480,21 @@ export default function AdminPage() {
             />
           </div>
 
-          <div className="muted" style={{ paddingBottom: 2 }}>
-            <b>Ukupno:</b> {counts.total}
+          <div
+            className="muted"
+            style={{
+              paddingBottom: 2,
+              fontSize: 15,
+              fontWeight: 600,
+            }}
+          >
+            Ukupno: <span style={{ color: "inherit" }}>{counts.total}</span>
           </div>
 
           <div style={{ alignSelf: "flex-end" }}>
-            <Button onClick={openAdd}>Kreiraj korisnika</Button>
+            <Button variant="primary" onClick={openAdd}>
+              Kreiraj korisnika
+            </Button>
           </div>
         </div>
 
@@ -433,21 +510,36 @@ export default function AdminPage() {
 
       <div
         style={{
-          marginTop: 16,
+          marginTop: 24,
           display: "grid",
           gridTemplateColumns: "1fr 1fr",
-          gap: 16,
+          gap: 22,
         }}
       >
-        <div className="card">
+        <div
+          className="card"
+          style={{
+            padding: 24,
+            border: "1px solid #d7dbe2",
+            boxShadow: "0 4px 20px rgba(15, 23, 42, 0.08)",
+            borderRadius: 14,
+          }}
+        >
           <div
-            style={{ display: "flex", justifyContent: "space-between", gap: 8 }}
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 16,
+              paddingBottom: 14,
+              borderBottom: "2px solid #e5e7eb",
+            }}
           >
-            <h2 className="sectionTitle" style={{ margin: 0 }}>
+            <h2 className="sectionTitle" style={{ margin: 0, fontSize: 20 }}>
               Radnici
             </h2>
-            <span className="muted">
-              Prikaz: <b>{employees.length}</b>
+            <span className="muted" style={{ fontWeight: 600, fontSize: 14 }}>
+              Prikaz: {employees.length}
             </span>
           </div>
 
@@ -468,15 +560,30 @@ export default function AdminPage() {
           )}
         </div>
 
-        <div className="card">
+        <div
+          className="card"
+          style={{
+            padding: 24,
+            border: "1px solid #d7dbe2",
+            boxShadow: "0 4px 20px rgba(15, 23, 42, 0.08)",
+            borderRadius: 14,
+          }}
+        >
           <div
-            style={{ display: "flex", justifyContent: "space-between", gap: 8 }}
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 16,
+              paddingBottom: 14,
+              borderBottom: "2px solid #e5e7eb",
+            }}
           >
-            <h2 className="sectionTitle" style={{ margin: 0 }}>
+            <h2 className="sectionTitle" style={{ margin: 0, fontSize: 20 }}>
               Menadžeri
             </h2>
-            <span className="muted">
-              Prikaz: <b>{managers.length}</b>
+            <span className="muted" style={{ fontWeight: 600, fontSize: 14 }}>
+              Prikaz: {managers.length}
             </span>
           </div>
 
@@ -552,7 +659,7 @@ export default function AdminPage() {
             />
 
             <div
-              style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}
+              style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 8 }}
             >
               <Button
                 onClick={() => {
@@ -562,7 +669,7 @@ export default function AdminPage() {
               >
                 Poništi
               </Button>
-              <Button onClick={submitAdd}>Kreiraj</Button>
+              <Button variant="primary" onClick={submitAdd}>Kreiraj</Button>
             </div>
           </div>
         </Modal>
@@ -617,10 +724,10 @@ export default function AdminPage() {
             </div>
 
             <div
-              style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}
+              style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 8 }}
             >
               <Button onClick={() => setEditUser(null)}>Cancel</Button>
-              <Button onClick={submitEdit}>Save</Button>
+              <Button variant="primary" onClick={submitEdit}>Save</Button>
             </div>
           </div>
         </Modal>
@@ -656,10 +763,10 @@ export default function AdminPage() {
             </div>
 
             <div
-              style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}
+              style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 8 }}
             >
               <Button onClick={() => setDeleteUser(null)}>Cancel</Button>
-              <Button onClick={confirmDelete}>Delete</Button>
+              <Button variant="danger" onClick={confirmDelete}>Delete</Button>
             </div>
           </div>
         </Modal>
@@ -699,7 +806,7 @@ export default function AdminPage() {
             />
 
             <div
-              style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}
+              style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 8 }}
             >
               <Button
                 onClick={() => {
@@ -709,7 +816,7 @@ export default function AdminPage() {
               >
                 Cancel
               </Button>
-              <Button onClick={submitResetPassword}>Reset</Button>
+              <Button variant="primary" onClick={submitResetPassword}>Reset</Button>
             </div>
           </div>
         </Modal>

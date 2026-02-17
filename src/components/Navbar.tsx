@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import { usePathname } from "next/navigation";
+import UserAvatar from "@/components/UserAvatar";
 
 export default function Navbar() {
   const router = useRouter();
@@ -25,13 +26,13 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="navbar">
-      <div className="navbarInner">
+    <nav className="navbar" style={{ borderBottom: "1px solid #d7dbe2", boxShadow: "0 1px 0 rgba(255,255,255,0.06)" }}>
+      <div className="navbarInner" style={{ padding: "16px 0" }}>
         <div className="navLinks">
           <Link
             href="/"
             className={`navLink ${
-              pathname === "/home" ? "navLink--active" : ""
+              pathname === "/" ? "navLink--active" : ""
             }`}
           >
             Home
@@ -106,9 +107,12 @@ export default function Navbar() {
         <div className="navRight">
           {user ? (
             <>
-              <span className="pill">
-                {user.email} • <span className="role-badge">{user.role}</span>
-              </span>
+              <div className="flex items-center gap-2">
+                <UserAvatar email={user.email} size={36} />
+                <span className="pill">
+                  {user.email} • <span className="role-badge">{user.role}</span>
+                </span>
+              </div>
 
               <button className="btn" onClick={handleLogout}>
                 Logout

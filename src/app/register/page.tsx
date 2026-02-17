@@ -106,22 +106,22 @@ export default function RegisterPage() {
   }
 
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-      }}
-    >
-      <h1 className="h1">Register</h1>
-      <p className="h2">Kreiraj nalog da koristiš evidenciju prisustva.</p>
+    <main className="authLayout">
+      <h1 className="h1" style={{ fontSize: 28, marginBottom: 8 }}>Register</h1>
+      <p className="h2" style={{ marginBottom: 24, fontSize: 16 }}>
+        Kreiraj nalog da koristiš evidenciju prisustva.
+      </p>
 
       <div
-        className="card"
-        style={{ maxWidth: 560, width: "100%", marginTop: 16 }}
+        className="card authCard"
+        style={{
+          maxWidth: 520,
+          padding: "32px 36px",
+          borderTop: "4px solid #4f46e5",
+          boxShadow: "0 8px 32px rgba(15, 23, 42, 0.12)",
+        }}
       >
-        <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
+        <div className="authFormGroup" style={{ gap: 20 }}>
           <TextField
             label="Ime"
             value={firstName}
@@ -177,12 +177,12 @@ export default function RegisterPage() {
             />
           </div>
 
-          <div className="row">
-            <Button onClick={handleRegister}>Registeruj se</Button>
+          <div className="row" style={{ marginTop: 4 }}>
+            <Button variant="primary" onClick={handleRegister}>Registeruj se</Button>
             {statusMsg ? <span className="muted">{statusMsg}</span> : null}
           </div>
 
-          <div className="muted" style={{ marginTop: 6 }}>
+          <div className="muted authFooter">
             Već imaš nalog?{" "}
             <a href="/login" style={{ textDecoration: "underline" }}>
               Uloguj se
@@ -194,10 +194,11 @@ export default function RegisterPage() {
         src="/slides/stickmans-line.png"
         alt="Login ilustracija"
         style={{
-          marginTop: 0,
+          marginTop: 24,
           maxWidth: 1200,
           width: "100%",
           opacity: 0.9,
+          borderRadius: 12,
         }}
       />
     </main>

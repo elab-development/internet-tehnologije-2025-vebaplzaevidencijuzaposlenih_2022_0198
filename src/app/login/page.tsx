@@ -6,7 +6,6 @@ import TextField from "@/components/TextField";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import Link from "next/link";
-import { relative } from "path";
 
 function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -85,22 +84,22 @@ export default function LoginPage() {
 
   //sta se vidi na ekranu:
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-      }}
-    >
-      <h1 className="h1">Login</h1>
-      <p className="h2">Unesi email i lozinku da pristupiš kalendaru.</p>
+    <main className="authLayout">
+      <h1 className="h1" style={{ fontSize: 28, marginBottom: 8 }}>Login</h1>
+      <p className="h2" style={{ marginBottom: 24, fontSize: 16 }}>
+        Unesi email i lozinku da pristupiš kalendaru.
+      </p>
 
       <div
-        className="card"
-        style={{ maxWidth: 500, width: "100%", marginTop: 16 }}
+        className="card authCard"
+        style={{
+          maxWidth: 420,
+          padding: "32px 36px",
+          borderTop: "4px solid #4f46e5",
+          boxShadow: "0 8px 32px rgba(15, 23, 42, 0.12)",
+        }}
       >
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <div className="authFormGroup" style={{ gap: 20 }}>
           <TextField
             label="Email"
             type="email"
@@ -146,15 +145,15 @@ export default function LoginPage() {
             />
           </div>
 
-          <p className="muted">
+          <p className="muted authFooter">
             Nemaš nalog?{" "}
             <Link href="/register" style={{ textDecoration: "underline" }}>
               Registruj se ovde
             </Link>
           </p>
 
-          <div className="row">
-            <Button onClick={handleLogin}>Login</Button>
+          <div className="row" style={{ marginTop: 8 }}>
+            <Button variant="primary" onClick={handleLogin}>Login</Button>
             {statusMsg ? <span className="muted">{statusMsg}</span> : null}
           </div>
         </div>
@@ -163,10 +162,11 @@ export default function LoginPage() {
         src="/slides/stickmans-line.png"
         alt="Login ilustracija"
         style={{
-          marginTop: 8,
+          marginTop: 24,
           maxWidth: 1200,
           width: "100%",
           opacity: 0.9,
+          borderRadius: 12,
         }}
       />
     </main>
