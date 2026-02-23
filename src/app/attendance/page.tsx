@@ -221,15 +221,24 @@ export default function AttendancePage() {
             style={{
               marginLeft: "auto",
               display: "flex",
-              gap: 10,
-              alignItems: "center",
-              flexWrap: "wrap",
+              flexDirection: "column",
+              gap: 12,
+              alignItems: "flex-start",
             }}
           >
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span className="muted">Statistika korisnika:</span>
+              <Button
+                onClick={() => {
+                  router.push("/stats/attendance");
+                }}
+              >
+                Statistika
+              </Button>
+            </div>
             {canEditActivities ? (
               <div
                 style={{
-                  marginLeft: "auto",
                   display: "flex",
                   gap: 10,
                   alignItems: "center",
@@ -246,22 +255,15 @@ export default function AttendancePage() {
                   {users.map((u) => (
                     <option key={u.id} value={u.id}>
                       {u.firstName || u.lastName
-                        ? `${u.firstName} ${u.lastName}`.trim() + "      ▾"
+                        ? `${u.firstName} ${u.lastName}`.trim()
                         : u.email}
                     </option>
                   ))}
                 </select>
               </div>
             ) : null}
-            <span className="muted">Statistika korisnika:</span>
-            <Button
-              onClick={() => {
-                router.push("/stats/attendance");
-              }}
-            >
-              Statistika
-            </Button>
           </div>
+
           {isEmployee ? (
             <Button
               onClick={() => {

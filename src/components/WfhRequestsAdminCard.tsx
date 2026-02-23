@@ -52,7 +52,7 @@ export default function WfhRequestsAdminCard() {
 
     const visible = all.filter((r) => {
       const t = new Date(r.createdAt).getTime();
-      if (Number.isNaN(t)) return true; // ako je datum loš, ne sakrivaj
+      if (Number.isNaN(t)) return true;
       return now - t <= DAY;
     });
 
@@ -98,8 +98,6 @@ export default function WfhRequestsAdminCard() {
       <div
         style={{
           display: "flex",
-          justifyContent: "space-between",
-          gap: 12,
           alignItems: "baseline",
         }}
       >
@@ -112,7 +110,15 @@ export default function WfhRequestsAdminCard() {
           </div>
         </div>
 
-        <Button onClick={loadAll}>Osveži</Button>
+        <div style={{ marginLeft: "auto" }}>
+          <Button onClick={loadAll}>
+            <img
+              src="/icons/button-icons/refresh.svg"
+              alt="Refresh"
+              style={{ width: 18, height: 18 }}
+            />
+          </Button>
+        </div>
       </div>
 
       {msg ? (
@@ -206,7 +212,10 @@ export default function WfhRequestsAdminCard() {
         ) : (
           <div style={{ display: "grid", gap: 12, marginTop: 12 }}>
             {decided.map((r) => (
-              <div key={r.id} className="card wfhRequestCard wfhRequestCardDecided">
+              <div
+                key={r.id}
+                className="card wfhRequestCard wfhRequestCardDecided"
+              >
                 <div
                   style={{
                     display: "flex",

@@ -26,15 +26,26 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="navbar" style={{ borderBottom: "1px solid #d7dbe2", boxShadow: "0 1px 0 rgba(255,255,255,0.06)" }}>
+    <nav
+      className="navbar"
+      style={{
+        borderBottom: "1px solid #d7dbe2",
+        boxShadow: "0 1px 0 rgba(255,255,255,0.06)",
+      }}
+    >
       <div className="navbarInner" style={{ padding: "16px 0" }}>
         <div className="navLinks">
           <Link
             href="/"
-            className={`navLink ${
+            className={`navLink flex items-center gap-2 ${
               pathname === "/" ? "navLink--active" : ""
             }`}
           >
+            <img
+              src="/icons/menu-icons/homepage.svg"
+              alt=""
+              className="w-4 h-4 opacity-60"
+            />
             Home
           </Link>
 
@@ -64,28 +75,44 @@ export default function Navbar() {
             <>
               <Link
                 href="/attendance"
-                className={`navLink ${
+                className={`navLink flex items-center gap-2 ${
                   pathname === "/attendance" ? "navLink--active" : ""
                 }`}
               >
+                <img
+                  src="/icons/menu-icons/attendance.svg"
+                  alt=""
+                  className="w-4 h-4 opacity-60"
+                />
                 Attendance
               </Link>
 
               <Link
                 href="/calendar"
-                className={`navLink ${
+                className={`navLink flex items-center gap-2 ${
                   pathname === "/calendar" ? "navLink--active" : ""
                 }`}
               >
+                <img
+                  src="/icons/menu-icons/calendar.svg"
+                  alt=""
+                  className="w-4 h-4 opacity-60"
+                />
                 Calendar
               </Link>
+
               {isEmployee ? (
                 <Link
                   href="/my-requests"
-                  className={`navLink ${
+                  className={`navLink flex items-center gap-2 ${
                     pathname === "/my-requests" ? "navLink--active" : ""
                   }`}
                 >
+                  <img
+                    src="/icons/menu-icons/user.svg"
+                    alt=""
+                    className="w-4 h-4 opacity-60"
+                  />
                   Moji zahtevi
                 </Link>
               ) : null}
@@ -93,10 +120,15 @@ export default function Navbar() {
               {isAdmin ? (
                 <Link
                   href="/admin"
-                  className={`navLink ${
+                  className={`navLink flex items-center gap-2 ${
                     pathname === "/admin" ? "navLink--active" : ""
                   }`}
                 >
+                  <img
+                    src="/icons/menu-icons/admin.svg"
+                    alt=""
+                    className="w-4 h-4 opacity-60"
+                  />
                   Admin
                 </Link>
               ) : null}
@@ -115,7 +147,11 @@ export default function Navbar() {
               </div>
 
               <button className="btn" onClick={handleLogout}>
-                Logout
+                <img
+                  src="/icons/button-icons/logout.svg"
+                  alt="Logout"
+                  className="w-4 h-4"
+                />
               </button>
             </>
           ) : (

@@ -80,11 +80,27 @@ export default function MyRequestsPage() {
       <h1 className="h1">Moji zahtevi (WFH)</h1>
       <p className="h2">Pregled svih poslatih WFH zahteva i statusa.</p>
 
-      <div className="row" style={{ gap: 10, marginTop: 10, display: "flex" }}>
+      <div
+        className="row"
+        style={{
+          marginTop: 10,
+          display: "flex",
+          alignItems: "center",
+        }}
+      >
         <span className="muted">
           Ukupno: <b>{sorted.length}</b>
         </span>
-        <Button onClick={load}>Osveži</Button>
+
+        <div style={{ marginLeft: "auto" }}>
+          <Button onClick={load}>
+            <img
+              src="/icons/button-icons/refresh.svg"
+              alt="Refresh"
+              style={{ width: 18, height: 18 }}
+            />
+          </Button>
+        </div>
       </div>
 
       {msg ? (
