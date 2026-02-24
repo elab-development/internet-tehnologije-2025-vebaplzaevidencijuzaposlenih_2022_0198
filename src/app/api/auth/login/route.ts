@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcrypt";
 import { enforceCsrf } from "@/lib/security/csrf";
-
+import { checkRateLimit } from "@/lib/security/rateLimit";
 import { prisma } from "@/lib/prisma";
 
 import {
@@ -18,7 +18,10 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const { email, password } = body ?? {};
-
+    const rate = checkRateLimit(email);
+    if (rate) {
+      return NextResponse.json({ error: rate.error }, { status: rate.status });
+    }
     if (!email || !password) {
       return NextResponse.json(
         { error: "Missing email or password" },
