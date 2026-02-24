@@ -224,13 +224,21 @@ Deploy proces uključuje:
 src/
   app/
     api/
-    calendar/
     admin/
+    attendance/
+    calendar/
+    login/
+    my-requests/
+    register/
+    stats/
+    swagger/
+  components/
   lib/
 prisma/
 tests/
 .github/workflows/
 docker-compose.yml
+docker/entrypoint.sh
 Dockerfile
 ```
 
