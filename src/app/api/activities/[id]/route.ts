@@ -22,6 +22,28 @@ export async function PUT(
       { status: 400 }
     );
   }
+  const authUserId = Number(auth.userId);
+  const authRole = auth.role as "ADMIN" | "MANAGER";
+
+  if (!Number.isInteger(authUserId)) {
+    return NextResponse.json(
+      { error: "Invalid token payload (missing userId)" },
+      { status: 401 }
+    );
+  }
+
+  const existing = await prisma.activity.findUnique({
+    where: { id: activityId },
+    select: { id: true, userId: true },
+  });
+
+  if (!existing) {
+    return NextResponse.json({ error: "Activity not found" }, { status: 404 });
+  }
+
+  if (authRole === "MANAGER" && existing.userId !== authUserId) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const body = await req.json();
   const { name, description, date, startTime, endTime, userId } = body ?? {};
@@ -67,6 +89,13 @@ export async function PUT(
     return NextResponse.json(
       { error: "endTime must be after startTime" },
       { status: 400 }
+    );
+  }
+
+  if (authRole === "MANAGER" && userId !== undefined) {
+    return NextResponse.json(
+      { error: "Managers cannot reassign activity owner" },
+      { status: 403 }
     );
   }
 
@@ -151,6 +180,30 @@ export async function DELETE(
   const activityId = Number(id);
   if (isNaN(activityId)) {
     return NextResponse.json({ error: "Invalid id" }, { status: 400 });
+  }
+
+  //IDOR
+  const authUserId = Number(auth.userId);
+  const authRole = auth.role as "ADMIN" | "MANAGER";
+
+  if (!Number.isInteger(authUserId)) {
+    return NextResponse.json(
+      { error: "Invalid token payload (missing userId)" },
+      { status: 401 }
+    );
+  }
+
+  const existing = await prisma.activity.findUnique({
+    where: { id: activityId },
+    select: { id: true, userId: true },
+  });
+
+  if (!existing) {
+    return NextResponse.json({ error: "Activity not found" }, { status: 404 });
+  }
+
+  if (authRole === "MANAGER" && existing.userId !== authUserId) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   try {

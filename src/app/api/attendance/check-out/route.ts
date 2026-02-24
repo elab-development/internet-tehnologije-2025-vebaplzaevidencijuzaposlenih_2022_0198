@@ -20,6 +20,13 @@ export async function POST(req: Request) {
     );
 
   const body = await req.json().catch(() => ({}));
+  // IDOR: zabrani pokusaj check-outa za drugog korisnika
+  if (body?.userId !== undefined || body?.targetUserId !== undefined) {
+    return NextResponse.json(
+      { error: "Forbidden: cannot check-out for another user." },
+      { status: 403 }
+    );
+  }
   const dateStr = body?.date ? String(body.date) : toISODateUTC(new Date());
 
   const day = parseDateOnlyUTC(dateStr);

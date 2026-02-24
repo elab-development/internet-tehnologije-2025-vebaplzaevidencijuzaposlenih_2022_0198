@@ -18,7 +18,8 @@ export async function PUT(
       { status: 401 }
     );
   }
-  if (role !== "ADMIN" && role !== "MANAGER") {
+  //IDOR
+  if (role !== "ADMIN") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -40,7 +41,7 @@ export async function PUT(
 
   const existing = await prisma.wfhRequest.findUnique({
     where: { id: requestId },
-    select: { id: true, status: true },
+    select: { id: true, status: true, userId: true },
   });
 
   if (!existing) {

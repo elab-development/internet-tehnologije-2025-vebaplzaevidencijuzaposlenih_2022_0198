@@ -33,7 +33,13 @@ export async function GET(req: Request) {
 
   const url = new URL(req.url);
   const userIdParam = url.searchParams.get("userId");
-
+  // IDOR: emplyee ne sme da trazi druge korisnike preko userId parametra
+  if (userIdParam && me.role === "EMPLOYEE") {
+    return NextResponse.json(
+      { error: "Forbidden: EMPLOYEE can only access own attendance" },
+      { status: 403 }
+    );
+  }
   let targetUserId = me.userId;
   if (me.role === "ADMIN" || me.role === "MANAGER") {
     if (userIdParam) {

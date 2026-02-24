@@ -22,6 +22,13 @@ export async function POST(req: Request) {
     );
 
   const body = await req.json().catch(() => ({}));
+    // IDOR : ne dozvoli userId u body-ju 
+  if (body?.userId !== undefined || body?.targetUserId !== undefined) {
+    return NextResponse.json(
+      { error: "Forbidden: cannot check-in for another user." },
+      { status: 403 }
+    );
+  }
   const dateStr = body?.date ? String(body.date) : toISODateUTC(new Date()); // danas
 
   const day = parseDateOnlyUTC(dateStr);

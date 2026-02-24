@@ -33,7 +33,17 @@ export async function GET(req: Request) {
   const fromStr = searchParams.get("from");
   const toStr = searchParams.get("to");
   const userIdParam = searchParams.get("userId");
-
+  // IDOR: emp ne sme ni da pokusa da trazi druge korisnike
+  if (
+    roleName === "EMPLOYEE" &&
+    userIdParam &&
+    userIdParam !== String(dbUser.id)
+  ) {
+    return NextResponse.json(
+      { error: "Forbidden: EMPLOYEE can only access own stats" },
+      { status: 403 }
+    );
+  }
   if (!fromStr || !toStr) {
     return NextResponse.json(
       { error: "Parametri from i to su obavezni (YYYY-MM-DD)." },
