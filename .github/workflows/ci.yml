@@ -40,7 +40,7 @@ jobs:
           cache: npm
 
       - name: Install deps
-        run: npm ci --legacy-peer-deps
+        run: npm install
 
       - name: Prisma generate
         run: npx prisma generate
