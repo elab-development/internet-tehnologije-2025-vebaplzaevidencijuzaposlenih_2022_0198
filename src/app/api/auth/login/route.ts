@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcrypt";
+import { enforceCsrf } from "@/lib/security/csrf";
 
 import { prisma } from "@/lib/prisma";
 
@@ -10,6 +11,8 @@ import {
 } from "@/lib/auth/auth.server";
 
 export async function POST(req: Request) {
+  const csrf = enforceCsrf(req);
+  if (csrf) return csrf;
   console.log("HIT /api/auth/login POST");
 
   try {

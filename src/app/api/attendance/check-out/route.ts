@@ -3,10 +3,13 @@ import prismaModule from "@/lib/prisma";
 import { requireAuth } from "@/lib/auth/auth.guard";
 import { parseDateOnlyUTC, toISODateUTC } from "@/lib/date/date";
 import { getAuthUserIdAndRole } from "@/lib/auth/auth.utils";
+import { enforceCsrf } from "@/lib/security/csrf";
 const { prisma } = prismaModule;
 
 // POST /api/attendance/check-out
 export async function POST(req: Request) {
+  const csrf = enforceCsrf(req);
+  if (csrf) return csrf;
   console.log("HIT /api/attendance/check-out POST ");
 
   const auth = requireAuth(req);

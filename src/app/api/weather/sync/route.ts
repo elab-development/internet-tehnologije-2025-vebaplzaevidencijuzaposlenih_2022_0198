@@ -6,8 +6,11 @@ import {
   fetchDailyWeatherArchive,
   fetchDailyWeatherForecast,
 } from "@/lib/weather/openmeteo";
+import { enforceCsrf } from "@/lib/security/csrf";
 
 export async function POST(req: Request) {
+  const csrf = enforceCsrf(req);
+  if (csrf) return csrf;
   const auth = await requireRole(req, ["ADMIN"]);
   if (auth instanceof Response) return auth;
 

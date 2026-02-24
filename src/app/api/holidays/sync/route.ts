@@ -2,10 +2,12 @@ import { NextResponse } from "next/server";
 import prismaModule from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/auth.guard";
 import { parseDateOnlyUTC } from "@/lib/date/date";
-
+import { enforceCsrf } from "@/lib/security/csrf";
 const prisma = (prismaModule as any).prisma;
 
 export async function POST(req: Request) {
+  const csrf = enforceCsrf(req);
+  if (csrf) return csrf;
   const auth = await requireRole(req, ["ADMIN"]);
   if (auth instanceof Response) return auth;
 

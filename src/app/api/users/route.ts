@@ -3,7 +3,7 @@ import { requireRole } from "@/lib/auth/auth.guard";
 import bcrypt from "bcrypt";
 import prismaModule from "@/lib/prisma";
 import { isEmail } from "@/lib/date/validation";
-
+import { enforceCsrf } from "@/lib/security/csrf";
 const { prisma } = prismaModule;
 
 type RoleName = "EMPLOYEE" | "MANAGER" | "ADMIN";
@@ -98,6 +98,8 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  const csrf = enforceCsrf(req);
+  if (csrf) return csrf;
   console.log("HIT /api/users POST");
 
   const auth = await requireRole(req, ["ADMIN"]);

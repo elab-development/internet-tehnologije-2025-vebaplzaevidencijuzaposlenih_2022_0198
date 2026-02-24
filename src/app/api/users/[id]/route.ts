@@ -4,13 +4,15 @@ import prismaModule from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/auth.guard";
 import { parseIdParam } from "@/lib/types/route-params";
 import { isEmail } from "@/lib/date/validation";
-
+import { enforceCsrf } from "@/lib/security/csrf";
 const { prisma } = prismaModule;
 
 export async function PUT(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const csrf = enforceCsrf(req);
+  if (csrf) return csrf;
   console.log("HIT /api/users/{id} PUT");
 
   const auth = await requireRole(req, ["ADMIN"]);
@@ -141,6 +143,8 @@ export async function DELETE(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const csrf = enforceCsrf(req);
+  if (csrf) return csrf;
   console.log("HIT /api/users/{id} DELETE");
 
   const auth = await requireRole(req, ["ADMIN"]);

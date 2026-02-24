@@ -3,8 +3,11 @@ import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/auth/auth.guard";
 import { parseDateOnlyUTC, addDaysUTC, toISODateUTC } from "@/lib/date/date";
 import { isBadWeather } from "@/lib/weather/wfh.utils";
+import { enforceCsrf } from "@/lib/security/csrf";
 
 export async function POST(req: Request) {
+  const csrf = enforceCsrf(req);
+  if (csrf) return csrf;
   const auth = requireAuth(req);
   if (auth instanceof Response) return auth;
 

@@ -1,13 +1,15 @@
 import { NextResponse } from "next/server";
 import prismaModule from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/auth.guard";
-
+import { enforceCsrf } from "@/lib/security/csrf";
 const { prisma } = prismaModule;
 
 export async function PUT(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const csrf = enforceCsrf(req);
+  if (csrf) return csrf;
   console.log("HIT /api/activities/{id} PUT ");
 
   const auth = await requireRole(req, ["ADMIN", "MANAGER"]);
@@ -171,6 +173,8 @@ export async function DELETE(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const csrf = enforceCsrf(req);
+  if (csrf) return csrf;
   console.log("HIT /api/activities/{id} DELETE");
 
   const auth = await requireRole(req, ["ADMIN", "MANAGER"]);

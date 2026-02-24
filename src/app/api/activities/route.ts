@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import prismaModule from "@/lib/prisma";
 import { requireAuth, requireRole } from "@/lib/auth/auth.guard";
 import { parseDateOnlyUTC, addDaysUTC } from "@/lib/date/date";
-
+import { enforceCsrf } from "@/lib/security/csrf";
 const { prisma } = prismaModule;
 
 //GET /api/activities?from ... to ...
@@ -77,6 +77,8 @@ export async function GET(req: Request) {
 
 //POST /api/activities (MANAGER/ADMIN)
 export async function POST(req: Request) {
+  const csrf = enforceCsrf(req);
+  if (csrf) return csrf;
   console.log("HIT /api/activities POST ");
 
   const auth = await requireRole(req, ["ADMIN", "MANAGER"]);

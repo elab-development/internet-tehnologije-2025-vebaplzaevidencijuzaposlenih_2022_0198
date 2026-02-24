@@ -4,11 +4,13 @@ import { requireAuth } from "@/lib/auth/auth.guard";
 import { parseDateOnlyUTC, toISODateUTC } from "@/lib/date/date";
 import { getAuthUserIdAndRole } from "@/lib/auth/auth.utils";
 import { isLateAfter14Local } from "@/lib/attendance/attendance.utils";
-
+import { enforceCsrf } from "@/lib/security/csrf";
 const { prisma } = prismaModule;
 
 // POST /api/attendance/check-in
 export async function POST(req: Request) {
+  const csrf = enforceCsrf(req);
+  if (csrf) return csrf;
   console.log("HIT /api/attendance/check-in POST ");
 
   const auth = await requireAuth(req);
@@ -22,7 +24,7 @@ export async function POST(req: Request) {
     );
 
   const body = await req.json().catch(() => ({}));
-    // IDOR : ne dozvoli userId u body-ju 
+  // IDOR : ne dozvoli userId u body-ju
   if (body?.userId !== undefined || body?.targetUserId !== undefined) {
     return NextResponse.json(
       { error: "Forbidden: cannot check-in for another user." },

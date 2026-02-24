@@ -4,6 +4,7 @@ import prismaModule from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/auth.guard";
 import { parseIdParam } from "@/lib/types/route-params";
 import bcrypt from "bcrypt";
+import { enforceCsrf } from "@/lib/security/csrf";
 
 const { prisma } = prismaModule;
 
@@ -11,6 +12,8 @@ export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const csrf = enforceCsrf(req);
+  if (csrf) return csrf;
   console.log("HIT /api/users/reset-password00 POST");
 
   const auth = await requireRole(req, ["ADMIN"]);

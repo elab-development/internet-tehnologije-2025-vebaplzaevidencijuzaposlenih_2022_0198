@@ -5,10 +5,12 @@ import {
   setAuthCookie,
   clearAuthCookie,
 } from "@/lib/auth/auth.server";
-
+import { enforceCsrf } from "@/lib/security/csrf";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(req: Request) {
+  const csrf = enforceCsrf(req);
+  if (csrf) return csrf;
   console.log("HIT /api/auth/register POST");
 
   try {
