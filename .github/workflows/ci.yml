@@ -71,4 +71,5 @@ jobs:
         run: npm test
 
       - name: Docker build
+        if: github.ref == 'refs/heads/main'
         run: docker build -t evidencija-zap:ci .
