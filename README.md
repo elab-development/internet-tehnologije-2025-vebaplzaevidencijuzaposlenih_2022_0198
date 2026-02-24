@@ -1,36 +1,277 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 📌 Evidencija zaposlenih
 
-## Getting Started
+Web aplikacija za evidenciju aktivnosti zaposlenih, prisustva, rada od kuće (WFH), vremenskih uslova i državnih praznika.
 
-First, run the development server:
+Aplikacija implementira:
+
+- Autentifikaciju i autorizaciju (RBAC)
+- Upravljanje aktivnostima
+- Evidenciju dolaska i odlaska
+- WFH zahteve sa validacijom vremenskih uslova
+- Integraciju sa eksternim API servisima
+- Sigurnosne mehanizme (IDOR, CSRF, rate limiting)
+- CI pipeline i Docker deploy
+
+---
+
+# 🧱 Tehnologije
+
+## Frontend
+
+- Next.js (App Router)
+- React
+- TypeScript
+
+## Backend
+
+- Next.js API Routes
+- Prisma 7
+- PostgreSQL
+
+## Testiranje
+
+- Vitest
+- Integration testovi (API)
+
+## DevOps
+
+- Docker & Docker Compose
+- GitHub Actions (CI)
+- Render (deploy)
+
+## Eksterni servisi
+
+- Open-Meteo API (vremenski podaci)
+- Nager.Date API (državni praznici)
+
+---
+
+# 🔐 Funkcionalnosti
+
+## Autentifikacija
+
+- Registracija
+- Login
+- JWT (httpOnly cookie)
+- Role-based access control:
+  - ADMIN
+  - MANAGER
+  - EMPLOYEE
+
+## Aktivnosti
+
+- Kreiranje aktivnosti
+- Izmena i brisanje (ADMIN/MANAGER)
+- Dodela aktivnosti drugim korisnicima
+- Filtriranje po datumu
+- Ownership kontrola (IDOR zaštita)
+
+## Prisustvo
+
+- Check-in
+- Check-out
+- Ograničenje na sopstveni nalog
+
+## WFH zahtevi
+
+- Zaposleni podnosi zahtev za rad od kuće
+- Validacija na osnovu vremenskih uslova
+- ADMIN odobrava ili odbija zahtev
+
+## Praznici
+
+- Sinhronizacija državnih praznika
+- Onemogućeno kreiranje aktivnosti na praznik
+
+## Sigurnost
+
+- IDOR zaštita (ownership provera)
+- CSRF zaštita (Origin validacija)
+- Rate limiting na login endpoint
+- React XSS zaštita (escape mehanizam)
+
+📊 Vizualizacija podataka
+
+Aplikacija sadrži Google Charts vizualizaciju statistike prisustva.
+
+Stranica: `/stats/attendance`
+
+Vizualizacije uključuju:
+
+- Donut chart (Udeo statusa: PRESENT, LATE, ABSENT)
+- Grafički prikaz po mesecima (stacked column chart)
+- Role-based filtriranje (ADMIN/MANAGER mogu filtrirati po korisniku)
+- Filter po datumu (Od – Do opseg)
+
+Podaci se dinamički učitavaju sa backend API-ja i agregiraju na osnovu odabranog perioda.
+
+---
+
+# ⚙️ Pokretanje aplikacije (lokalno)
+
+## 1️⃣ Kloniranje repozitorijuma
+
+```bash
+git clone <https://github.com/elab-development/internet-tehnologije-2025-vebaplzaevidencijuzaposlenih_2022_0198.git>
+cd evidencija-zap
+```
+
+---
+
+## 2️⃣ Instalacija zavisnosti
+
+```bash
+npm install
+```
+
+---
+
+## 3️⃣ Kreiranje .env fajla
+
+U root folderu kreirati `.env` fajl:
+
+```
+DATABASE_URL=postgresql://user:password@localhost:5432/attendance_app
+JWT_SECRET=your_secret_key
+APP_ORIGIN=http://localhost:3000
+WEATHER_LAT=your_latitude
+WEATHER_LON=your_longitude
+```
+
+---
+
+## 4️⃣ Pokretanje baze (Docker)
+
+```bash
+docker-compose up -d db
+```
+
+---
+
+## 5️⃣ Migracije i seed
+
+```bash
+npx prisma migrate dev
+node prisma/seed.js
+```
+
+---
+
+## 6️⃣ Pokretanje aplikacije
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Aplikacija je dostupna na:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+http://localhost:3000
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+# 🧪 Pokretanje testova
 
-To learn more about Next.js, take a look at the following resources:
+Za test okruženje koristi se posebna baza.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm run test
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Testovi obuhvataju:
 
-## Deploy on Vercel
+- RBAC validaciju
+- API funkcionalnost
+- Database reset izolaciju
+- JWT autentifikaciju
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+# 🐳 Pokretanje kompletne aplikacije preko Docker-a
+
+```bash
+docker-compose up --build
+```
+
+Aplikacija je dostupna na:
+
+```
+http://localhost:3001
+```
+
+---
+
+# 🚀 Deploy
+
+Aplikacija je deploy-ovana na Render platformi.
+
+Deploy proces uključuje:
+
+- npm ci
+- prisma generate
+- prisma migrate deploy
+- npm run build
+- pokretanje servera
+- pokretanje testova
+- docker build
+
+---
+
+# 📂 Struktura projekta
+
+```
+src/
+  app/
+    api/
+    calendar/
+    admin/
+  lib/
+prisma/
+tests/
+.github/workflows/
+docker-compose.yml
+Dockerfile
+```
+
+# 📘 API dokumentacija (Swagger / OpenAPI)
+
+Aplikacija sadrži OpenAPI 3.0 specifikaciju backend API-ja.
+
+OpenAPI JSON specifikacija dostupna je na:
+
+```
+GET /api/openapi
+```
+
+Specifikacija obuhvata:
+
+- Auth rute
+- Users rute
+- Activities rute
+- Attendance rute
+- ICS export
+- Definisane request/response šeme
+- Cookie-based autentifikaciju (auth_token)
+
+OpenAPI dokument se može:
+
+- Otvoriti direktno u browseru
+- Importovati u Swagger Editor
+- Importovati u Postman
+
+Specifikacija je u skladu sa OpenAPI 3.0.3 standardom.
+
+---
+
+# 📌 Napomena
+
+Seed skripta kreira inicijalnog ADMIN korisnika za testiranje.
+
+Za produkcioni deploy potrebno je:
+
+- Postaviti environment varijable na hosting platformi
+- Omogućiti sigurnosne cookie opcije (Secure, SameSite)
+- Konfigurisati bazu podataka
+
+---
