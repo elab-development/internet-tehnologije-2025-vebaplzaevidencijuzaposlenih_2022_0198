@@ -1,15 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth.guard";
-
-function parseDateOnlyUTC(ymd: string) {
-  return new Date(`${ymd}T00:00:00.000Z`);
-}
-function addDaysUTC(d: Date, days: number) {
-  const x = new Date(d);
-  x.setUTCDate(x.getUTCDate() + days);
-  return x;
-}
+import { requireAuth } from "@/lib/auth/auth.guard";
+import { parseDateOnlyUTC, addDaysUTC, toISODateUTC } from "@/lib/date/date";
 
 export async function GET(req: Request) {
   const auth = await requireAuth(req);
@@ -29,6 +21,14 @@ export async function GET(req: Request) {
 
   const fromDt = parseDateOnlyUTC(from);
   const toDt = parseDateOnlyUTC(to);
+
+  if (!fromDt || !toDt) {
+    return NextResponse.json(
+      { error: "from i to moraju biti u formatu YYYY-MM-DD." },
+      { status: 400 }
+    );
+  }
+
   const endExclusive = addDaysUTC(toDt, 1);
 
   const holidays = await prisma.holiday.findMany({

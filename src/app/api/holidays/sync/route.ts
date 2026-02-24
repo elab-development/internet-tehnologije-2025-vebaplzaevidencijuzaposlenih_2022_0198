@@ -1,14 +1,9 @@
 import { NextResponse } from "next/server";
 import prismaModule from "@/lib/prisma";
-import { requireRole } from "@/lib/auth.guard";
+import { requireRole } from "@/lib/auth/auth.guard";
+import { parseDateOnlyUTC } from "@/lib/date/date";
 
 const prisma = (prismaModule as any).prisma;
-console.log("prisma keys:", Object.keys(prisma ?? {}));
-console.log("has holiday:", Boolean((prisma as any)?.holiday));
-
-function dateOnlyUTC(ymd: string) {
-  return new Date(`${ymd}T00:00:00.000Z`);
-}
 
 export async function POST(req: Request) {
   const auth = await requireRole(req, ["ADMIN"]);
@@ -48,7 +43,8 @@ export async function POST(req: Request) {
 
   const created: number[] = [];
   for (const h of items) {
-    const dt = dateOnlyUTC(h.date);
+    const dt = parseDateOnlyUTC(h.date);
+    if (!dt) continue;
 
     const row = await prisma.holiday.upsert({
       where: {

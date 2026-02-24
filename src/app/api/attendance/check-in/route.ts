@@ -1,41 +1,17 @@
 import { NextResponse } from "next/server";
 import prismaModule from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth.guard";
+import { requireAuth } from "@/lib/auth/auth.guard";
+import { parseDateOnlyUTC, toISODateUTC } from "@/lib/date/date";
+import { getAuthUserIdAndRole } from "@/lib/auth/auth.utils";
+import { isLateAfter14Local } from "@/lib/attendance/attendance.utils";
 
 const { prisma } = prismaModule;
-
-function parseDateOnlyUTC(dateStr: string): Date | null {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return null;
-  const d = new Date(`${dateStr}T00:00:00.000Z`);
-  return Number.isNaN(d.getTime()) ? null : d;
-}
-
-function getAuthUserIdAndRole(
-  auth: any
-): { userId: number; role: string } | null {
-  const userIdRaw = auth.userId; // auth.id
-  const roleRaw = auth.role;
-
-  const userId = Number(userIdRaw);
-  const role = typeof roleRaw === "string" ? roleRaw : "";
-
-  if (!Number.isInteger(userId) || userId <= 0) return null;
-  if (!role) return null;
-
-  return { userId, role };
-}
-
-function isLateAfter14Local(now: Date) {
-  const hh = now.getHours();
-  const mm = now.getMinutes();
-  return hh > 14 || (hh === 14 && mm > 0);
-}
 
 // POST /api/attendance/check-in
 export async function POST(req: Request) {
   console.log("HIT /api/attendance/check-in POST ");
 
-  const auth = requireAuth(req);
+  const auth = await requireAuth(req);
   if (auth instanceof Response) return auth;
 
   const me = getAuthUserIdAndRole(auth);
@@ -46,9 +22,7 @@ export async function POST(req: Request) {
     );
 
   const body = await req.json().catch(() => ({}));
-  const dateStr = body?.date
-    ? String(body.date)
-    : new Date().toISOString().slice(0, 10); // danas
+  const dateStr = body?.date ? String(body.date) : toISODateUTC(new Date()); // danas
 
   const day = parseDateOnlyUTC(dateStr);
   if (!day) {
@@ -60,7 +34,7 @@ export async function POST(req: Request) {
 
   const now = new Date();
   const statusName = isLateAfter14Local(now) ? "LATE" : "PRESENT";
-
+  console.log("DB URL (server):", process.env.DATABASE_URL);
   const statusRow = await prisma.attendanceStatus.findUnique({
     where: { name: statusName },
     select: { id: true },
@@ -113,7 +87,7 @@ export async function POST(req: Request) {
     {
       attendance: {
         id: saved.id,
-        date: saved.date.toISOString().slice(0, 10),
+        date: toISODateUTC(saved.date),
         startTime: saved.startTime ? saved.startTime.toISOString() : null,
         endTime: saved.endTime ? saved.endTime.toISOString() : null,
         totalWorkMinutes: saved.totalWorkMinutes ?? null,

@@ -8,6 +8,9 @@ import TextField from "@/components/TextField";
 import Modal from "@/components/Modal";
 import WfhRequestsAdminCard from "@/components/WfhRequestsAdminCard";
 import UserAvatar from "@/components/UserAvatar";
+import { fullName } from "@/lib/types/user";
+import { fmtLocalDateTimeSR } from "@/lib/date/format";
+import { isEmail } from "@/lib/date/validation";
 
 type Role = "EMPLOYEE" | "MANAGER" | "ADMIN";
 
@@ -20,36 +23,6 @@ type UserDTO = {
   createdAt: string;
   lastLoginAt: string | null;
 };
-
-type WfhReq = {
-  id: number;
-  date: string; // YYYY-MM-DD
-  status: "PENDING" | "APPROVED" | "REJECTED";
-  reason: string | null;
-  precipSum: number | null;
-  windMax: number | null;
-  weatherCode: number | null;
-  user: { id: number; firstName: string; lastName: string; email: string };
-};
-
-function fullName(u: Pick<UserDTO, "firstName" | "lastName">) {
-  return `${u.firstName} ${u.lastName}`.trim();
-}
-function userLabel(u: WfhReq["user"]) {
-  const full = `${u.firstName} ${u.lastName}`.trim();
-  return full ? full : u.email;
-}
-
-function fmtDateTime(iso: string | null) {
-  if (!iso) return "-";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "-";
-  return d.toLocaleString("sr-RS");
-}
-
-function isEmail(s: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
-}
 
 export default function AdminPage() {
   const { user } = useAuth();
@@ -333,10 +306,31 @@ export default function AdminPage() {
 
   function roleBadgeStyle(role: Role) {
     if (role === "ADMIN")
-      return { background: "#4f46e5", color: "#fff", padding: "4px 10px", borderRadius: 8, fontSize: 12, fontWeight: 600 };
+      return {
+        background: "#4f46e5",
+        color: "#fff",
+        padding: "4px 10px",
+        borderRadius: 8,
+        fontSize: 12,
+        fontWeight: 600,
+      };
     if (role === "MANAGER")
-      return { background: "rgba(79, 70, 229, 0.15)", color: "#4338ca", padding: "4px 10px", borderRadius: 8, fontSize: 12, fontWeight: 600 };
-    return { background: "#e5e7eb", color: "#374151", padding: "4px 10px", borderRadius: 8, fontSize: 12, fontWeight: 600 };
+      return {
+        background: "rgba(79, 70, 229, 0.15)",
+        color: "#4338ca",
+        padding: "4px 10px",
+        borderRadius: 8,
+        fontSize: 12,
+        fontWeight: 600,
+      };
+    return {
+      background: "#e5e7eb",
+      color: "#374151",
+      padding: "4px 10px",
+      borderRadius: 8,
+      fontSize: 12,
+      fontWeight: 600,
+    };
   }
 
   function UserCardRow({ u }: { u: UserDTO }) {
@@ -405,7 +399,7 @@ export default function AdminPage() {
 
           <div style={{ textAlign: "right", flexShrink: 0 }}>
             <div className="muted" style={{ fontSize: 12 }}>
-              Last login: {fmtDateTime(u.lastLoginAt)}
+              Last login: {fmtLocalDateTimeSR(u.lastLoginAt)}
             </div>
           </div>
         </div>
@@ -444,7 +438,9 @@ export default function AdminPage() {
           borderBottom: "2px solid #e5e7eb",
         }}
       >
-        <h1 className="h1" style={{ fontSize: 28, marginBottom: 6 }}>Admin</h1>
+        <h1 className="h1" style={{ fontSize: 28, marginBottom: 6 }}>
+          Admin
+        </h1>
         <p className="h2" style={{ fontSize: 16, margin: 0 }}>
           Upravljanje korisnicima (DB).
         </p>
@@ -659,7 +655,12 @@ export default function AdminPage() {
             />
 
             <div
-              style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 8 }}
+              style={{
+                display: "flex",
+                gap: 10,
+                justifyContent: "flex-end",
+                marginTop: 8,
+              }}
             >
               <Button
                 onClick={() => {
@@ -669,7 +670,9 @@ export default function AdminPage() {
               >
                 Poništi
               </Button>
-              <Button variant="primary" onClick={submitAdd}>Kreiraj</Button>
+              <Button variant="primary" onClick={submitAdd}>
+                Kreiraj
+              </Button>
             </div>
           </div>
         </Modal>
@@ -695,7 +698,7 @@ export default function AdminPage() {
 
             <div className="muted">
               ID: <b>{editUser.id}</b> | Kreiran:{" "}
-              <b>{fmtDateTime(editUser.createdAt)}</b>
+              <b>{fmtLocalDateTimeSR(editUser.createdAt)}</b>
             </div>
 
             <TextField label="Ime" value={formFirst} onChange={setFormFirst} />
@@ -724,10 +727,17 @@ export default function AdminPage() {
             </div>
 
             <div
-              style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 8 }}
+              style={{
+                display: "flex",
+                gap: 10,
+                justifyContent: "flex-end",
+                marginTop: 8,
+              }}
             >
               <Button onClick={() => setEditUser(null)}>Cancel</Button>
-              <Button variant="primary" onClick={submitEdit}>Save</Button>
+              <Button variant="primary" onClick={submitEdit}>
+                Save
+              </Button>
             </div>
           </div>
         </Modal>
@@ -763,10 +773,17 @@ export default function AdminPage() {
             </div>
 
             <div
-              style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 8 }}
+              style={{
+                display: "flex",
+                gap: 10,
+                justifyContent: "flex-end",
+                marginTop: 8,
+              }}
             >
               <Button onClick={() => setDeleteUser(null)}>Cancel</Button>
-              <Button variant="danger" onClick={confirmDelete}>Delete</Button>
+              <Button variant="danger" onClick={confirmDelete}>
+                Delete
+              </Button>
             </div>
           </div>
         </Modal>
@@ -806,7 +823,12 @@ export default function AdminPage() {
             />
 
             <div
-              style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 8 }}
+              style={{
+                display: "flex",
+                gap: 10,
+                justifyContent: "flex-end",
+                marginTop: 8,
+              }}
             >
               <Button
                 onClick={() => {
@@ -816,7 +838,9 @@ export default function AdminPage() {
               >
                 Cancel
               </Button>
-              <Button variant="primary" onClick={submitResetPassword}>Reset</Button>
+              <Button variant="primary" onClick={submitResetPassword}>
+                Reset
+              </Button>
             </div>
           </div>
         </Modal>

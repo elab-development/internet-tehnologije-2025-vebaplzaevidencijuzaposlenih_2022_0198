@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import {
   fetchDailyWeatherArchive,
   fetchDailyWeatherForecast,
-} from "@/lib/openmeteo";
+} from "@/lib/weather/openmeteo";
 
 function ymdTodayUTC() {
   return new Date().toISOString().slice(0, 10);

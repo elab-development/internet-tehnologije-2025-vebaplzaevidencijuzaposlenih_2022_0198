@@ -1,17 +1,15 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireRole } from "@/lib/auth.guard";
+import { requireRole } from "@/lib/auth/auth.guard";
+import { parseDateOnlyUTC, addDaysUTC, toISODateUTC } from "@/lib/date/date";
 import {
   fetchDailyWeatherArchive,
   fetchDailyWeatherForecast,
-} from "@/lib/openmeteo";
-
-function toUTCDateMidnight(dateStr: string) {
-  return new Date(dateStr + "T00:00:00.000Z");
-}
+} from "@/lib/weather/openmeteo";
 
 export async function POST(req: Request) {
-  await requireRole(req, ["ADMIN"]);
+  const auth = await requireRole(req, ["ADMIN"]);
+  if (auth instanceof Response) return auth;
 
   const { searchParams } = new URL(req.url);
   const from = searchParams.get("from"); // YYYY-MM-DD
@@ -26,8 +24,7 @@ export async function POST(req: Request) {
 
   const locationKey = process.env.WEATHER_LOCATION_KEY ?? "BELGRADE_OFFICE";
 
-  const todayStr = new Date().toISOString().slice(0, 10);
-
+  const todayStr = toISODateUTC(new Date());
   let rows: Array<{
     day: string;
     tempMax: number | null;
@@ -38,17 +35,14 @@ export async function POST(req: Request) {
   }> = [];
 
   if (to <= todayStr) {
-    
     rows = await fetchDailyWeatherArchive(from, to);
   } else if (from > todayStr) {
-    
     rows = await fetchDailyWeatherForecast(from, to);
   } else {
     const arch = await fetchDailyWeatherArchive(from, todayStr);
 
-    const tomorrow = new Date(todayStr + "T00:00:00.000Z");
-    tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
-    const tomorrowStr = tomorrow.toISOString().slice(0, 10);
+    const todayDate = parseDateOnlyUTC(todayStr)!;
+    const tomorrowStr = toISODateUTC(addDaysUTC(todayDate, 1));
 
     const fore = await fetchDailyWeatherForecast(tomorrowStr, to);
 
@@ -62,7 +56,8 @@ export async function POST(req: Request) {
   let upserted = 0;
 
   for (const r of rows) {
-    const date = toUTCDateMidnight(r.day);
+    const date = parseDateOnlyUTC(r.day);
+    if (!date) continue;
 
     await prisma.weatherDaily.upsert({
       where: {

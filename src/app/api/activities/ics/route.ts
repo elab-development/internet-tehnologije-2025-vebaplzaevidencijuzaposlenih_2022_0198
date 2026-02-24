@@ -1,45 +1,15 @@
 import { NextResponse } from "next/server";
 import prismaModule from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth.guard";
+import { requireAuth } from "@/lib/auth/auth.guard";
+import { parseDateOnlyUTC, addDaysUTC } from "@/lib/date/date";
+import { toICSDateTime, escICS } from "@/lib/attendance/ics";
 
 const { prisma } = prismaModule;
-
-function parseDateOnlyUTC(dateStr: string): Date | null {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return null;
-  const d = new Date(`${dateStr}T00:00:00.000Z`);
-  return Number.isNaN(d.getTime()) ? null : d;
-}
-function addDaysUTC(d: Date, days: number): Date {
-  const copy = new Date(d);
-  copy.setUTCDate(copy.getUTCDate() + days);
-  return copy;
-}
-
-function toICSDateTime(iso: string) {
-  // 2026-02-08T09:00:00.000Z -> 20260208T090000Z
-  const d = new Date(iso);
-  const yyyy = d.getUTCFullYear();
-  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
-  const dd = String(d.getUTCDate()).padStart(2, "0");
-  const hh = String(d.getUTCHours()).padStart(2, "0");
-  const mi = String(d.getUTCMinutes()).padStart(2, "0");
-  const ss = String(d.getUTCSeconds()).padStart(2, "0");
-  return `${yyyy}${mm}${dd}T${hh}${mi}${ss}Z`;
-}
-
-function escICS(text: string) {
-  // minimalno escaping po RFC5545
-  return text
-    .replace(/\\/g, "\\\\")
-    .replace(/\n/g, "\\n")
-    .replace(/,/g, "\\,")
-    .replace(/;/g, "\\;");
-}
 
 export async function GET(req: Request) {
   console.log("HIT /api/activities/ics GET ");
 
-  const auth = requireAuth(req);
+  const auth = await requireAuth(req);
   if (auth instanceof Response) return auth;
 
   const url = new URL(req.url);

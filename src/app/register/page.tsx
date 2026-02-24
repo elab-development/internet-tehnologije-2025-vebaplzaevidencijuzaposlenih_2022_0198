@@ -5,11 +5,7 @@ import { useRouter } from "next/navigation";
 import Button from "@/components/Button";
 import TextField from "@/components/TextField";
 import { useAuth } from "@/components/AuthProvider";
-import type { UserRole } from "@/lib/types";
-
-function isValidEmail(email: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
+import { isEmail } from "@/lib/date/validation";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -48,7 +44,7 @@ export default function RegisterPage() {
     if (!e) {
       setEmailError("Email je obavezan.");
       ok = false;
-    } else if (!isValidEmail(e)) {
+    } else if (!isEmail(e)) {
       setEmailError("Email format nije ispravan.");
       ok = false;
     } else {
@@ -107,7 +103,9 @@ export default function RegisterPage() {
 
   return (
     <main className="authLayout">
-      <h1 className="h1" style={{ fontSize: 28, marginBottom: 8 }}>Register</h1>
+      <h1 className="h1" style={{ fontSize: 28, marginBottom: 8 }}>
+        Register
+      </h1>
       <p className="h2" style={{ marginBottom: 24, fontSize: 16 }}>
         Kreiraj nalog da koristiš evidenciju prisustva.
       </p>
@@ -178,7 +176,9 @@ export default function RegisterPage() {
           </div>
 
           <div className="row" style={{ marginTop: 4 }}>
-            <Button variant="primary" onClick={handleRegister}>Registeruj se</Button>
+            <Button variant="primary" onClick={handleRegister}>
+              Registeruj se
+            </Button>
             {statusMsg ? <span className="muted">{statusMsg}</span> : null}
           </div>
 

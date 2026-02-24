@@ -42,10 +42,25 @@ export function clearAuthCookie() {
   });
 }
 
+// export function readAuthTokenFromRequest(req: Request): string | null {
+//   const cookieHeader = req.headers.get("cookie") || "";
+//   const cookies = parse(cookieHeader);
+//   return cookies[COOKIE_NAME] ?? null;
+// }
 export function readAuthTokenFromRequest(req: Request): string | null {
+  // 1) Cookie
   const cookieHeader = req.headers.get("cookie") || "";
   const cookies = parse(cookieHeader);
-  return cookies[COOKIE_NAME] ?? null;
+  const fromCookie = cookies[COOKIE_NAME];
+  if (fromCookie) return fromCookie;
+
+  // 2) Authorization: Bearer <token>
+  const auth =
+    req.headers.get("authorization") || req.headers.get("Authorization");
+  if (!auth) return null;
+
+  const m = auth.match(/^Bearer\s+(.+)$/i);
+  return m ? m[1] : null;
 }
 
 export const AUTH_COOKIE_NAME = COOKIE_NAME;

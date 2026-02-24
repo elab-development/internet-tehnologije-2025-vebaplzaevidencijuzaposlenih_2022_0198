@@ -4,7 +4,7 @@ const { prisma } = require("../../../../../src/lib/prisma");
 import {
   readAuthTokenFromRequest,
   verifyToken,
-} from "../../../../../src/lib/auth.server";
+} from "../../../../lib/auth/auth.server";
 
 export async function GET(req: Request) {
   console.log("HIT /api/auth/me GET");

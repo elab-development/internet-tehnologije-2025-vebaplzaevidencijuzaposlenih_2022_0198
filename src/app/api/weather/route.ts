@@ -1,15 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth.guard";
-import { ensureWeatherRangeInDb } from "@/lib/weather.ensure";
-
-function parseYMD(dateStr: string) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return null;
-  return new Date(dateStr + "T00:00:00.000Z");
-}
+import { requireAuth } from "@/lib/auth/auth.guard";
+import { ensureWeatherRangeInDb } from "@/lib/weather/weather.ensure";
+import { parseDateOnlyUTC, addDaysUTC, toISODateUTC } from "@/lib/date/date";
 
 export async function GET(req: Request) {
-  await requireAuth(req);
+  const auth = await requireAuth(req);
+  if (auth instanceof Response) return auth;
 
   const { searchParams } = new URL(req.url);
   const from = searchParams.get("from");
@@ -26,15 +23,14 @@ export async function GET(req: Request) {
     );
   }
 
-  const fromDate = parseYMD(from);
-  const toDate = parseYMD(to);
+  const fromDate = parseDateOnlyUTC(from);
+  const toDate = parseDateOnlyUTC(to);
 
   if (!fromDate || !toDate) {
     return NextResponse.json({ error: "Invalid date format" }, { status: 400 });
   }
 
-  const endExclusive = new Date(toDate);
-  endExclusive.setUTCDate(endExclusive.getUTCDate() + 1);
+  const endExclusive = addDaysUTC(toDate, 1);
 
   let data = await prisma.weatherDaily.findMany({
     where: {
@@ -77,7 +73,7 @@ export async function GET(req: Request) {
   }
 
   const out = data.map((x: any) => ({
-    date: x.date.toISOString().slice(0, 10),
+    date: toISODateUTC(x.date),
     tempMax: x.tempMax,
     tempMin: x.tempMin,
     precipSum: x.precipSum,

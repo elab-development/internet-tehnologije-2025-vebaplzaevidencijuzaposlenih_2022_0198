@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcrypt";
-import { signToken, setAuthCookie, clearAuthCookie } from "@/lib/auth.server";
+import {
+  signToken,
+  setAuthCookie,
+  clearAuthCookie,
+} from "@/lib/auth/auth.server";
 
 import { prisma } from "@/lib/prisma";
 

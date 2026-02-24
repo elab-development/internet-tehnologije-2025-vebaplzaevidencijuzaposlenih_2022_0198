@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { clearAuthCookie } from "../../../../../src/lib/auth.server";
+import { clearAuthCookie } from "../../../../lib/auth/auth.server";
 
 export async function POST() {
   console.log("HIT /api/auth/logout POST");

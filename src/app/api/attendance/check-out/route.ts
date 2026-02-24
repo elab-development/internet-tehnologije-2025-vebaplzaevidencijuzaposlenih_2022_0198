@@ -1,29 +1,9 @@
 import { NextResponse } from "next/server";
 import prismaModule from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth.guard";
-
+import { requireAuth } from "@/lib/auth/auth.guard";
+import { parseDateOnlyUTC, toISODateUTC } from "@/lib/date/date";
+import { getAuthUserIdAndRole } from "@/lib/auth/auth.utils";
 const { prisma } = prismaModule;
-
-function parseDateOnlyUTC(dateStr: string): Date | null {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return null;
-  const d = new Date(`${dateStr}T00:00:00.000Z`);
-  return Number.isNaN(d.getTime()) ? null : d;
-}
-
-function getAuthUserIdAndRole(
-  auth: any
-): { userId: number; role: string } | null {
-  const userIdRaw = auth.userId;
-  const roleRaw = auth.role;
-
-  const userId = Number(userIdRaw);
-  const role = typeof roleRaw === "string" ? roleRaw : "";
-
-  if (!Number.isInteger(userId) || userId <= 0) return null;
-  if (!role) return null;
-
-  return { userId, role };
-}
 
 // POST /api/attendance/check-out
 export async function POST(req: Request) {
@@ -40,9 +20,7 @@ export async function POST(req: Request) {
     );
 
   const body = await req.json().catch(() => ({}));
-  const dateStr = body?.date
-    ? String(body.date)
-    : new Date().toISOString().slice(0, 10);
+  const dateStr = body?.date ? String(body.date) : toISODateUTC(new Date());
 
   const day = parseDateOnlyUTC(dateStr);
   if (!day) {
@@ -107,7 +85,7 @@ export async function POST(req: Request) {
     {
       attendance: {
         id: saved.id,
-        date: saved.date.toISOString().slice(0, 10),
+        date: toISODateUTC(saved.date),
         startTime: saved.startTime ? saved.startTime.toISOString() : null,
         endTime: saved.endTime ? saved.endTime.toISOString() : null,
         totalWorkMinutes: saved.totalWorkMinutes ?? null,

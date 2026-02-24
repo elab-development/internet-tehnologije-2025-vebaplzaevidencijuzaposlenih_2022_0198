@@ -1,14 +1,11 @@
 // src/app/api/users/[id]/route.ts
 import { NextResponse } from "next/server";
 import prismaModule from "@/lib/prisma";
-import { requireRole } from "@/lib/auth.guard";
+import { requireRole } from "@/lib/auth/auth.guard";
+import { parseIdParam } from "@/lib/types/route-params";
+import { isEmail } from "@/lib/date/validation";
 
 const { prisma } = prismaModule;
-
-function parseId(params: { id: string }) {
-  const n = Number(params.id);
-  return Number.isFinite(n) ? n : null;
-}
 
 export async function PUT(
   req: Request,
@@ -20,7 +17,7 @@ export async function PUT(
   if (auth instanceof Response) return auth;
 
   const { id } = await params;
-  const userId = parseId({ id });
+  const userId = parseIdParam(id);
   if (!userId) {
     return NextResponse.json({ error: "Neispravan id." }, { status: 400 });
   }
@@ -43,7 +40,7 @@ export async function PUT(
       ? String(body.role).trim().toUpperCase()
       : undefined;
 
-  if (email !== undefined && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  if (email !== undefined && !isEmail(email)) {
     return NextResponse.json(
       { error: "Email format nije ispravan." },
       { status: 400 }
@@ -150,7 +147,7 @@ export async function DELETE(
   if (auth instanceof Response) return auth;
 
   const { id } = await params;
-  const userId = parseId({ id });
+  const userId = parseIdParam(id);
   if (!userId) {
     return NextResponse.json({ error: "Neispravan id." }, { status: 400 });
   }

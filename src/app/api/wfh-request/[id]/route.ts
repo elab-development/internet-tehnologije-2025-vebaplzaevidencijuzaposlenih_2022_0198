@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth.guard";
+import { requireAuth } from "@/lib/auth/auth.guard";
 
 export async function PUT(
   req: Request,

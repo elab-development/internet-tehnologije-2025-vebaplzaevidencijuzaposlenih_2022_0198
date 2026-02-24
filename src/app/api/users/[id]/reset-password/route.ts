@@ -1,15 +1,11 @@
 // src/app/api/users/[id]/reset-password/route.ts
 import { NextResponse } from "next/server";
 import prismaModule from "@/lib/prisma";
-import { requireRole } from "@/lib/auth.guard";
+import { requireRole } from "@/lib/auth/auth.guard";
+import { parseIdParam } from "@/lib/types/route-params";
 import bcrypt from "bcrypt";
 
 const { prisma } = prismaModule;
-
-function parseId(params: { id: string }) {
-  const n = Number(params.id);
-  return Number.isFinite(n) ? n : null;
-}
 
 export async function POST(
   req: Request,
@@ -21,7 +17,7 @@ export async function POST(
   if (auth instanceof Response) return auth;
 
   const { id } = await params;
-  const userId = parseId({ id });
+  const userId = parseIdParam(id);
   if (!userId) {
     return NextResponse.json({ error: "Neispravan id." }, { status: 400 });
   }

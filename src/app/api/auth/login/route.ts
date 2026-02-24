@@ -7,7 +7,7 @@ import {
   signToken,
   setAuthCookie,
   clearAuthCookie,
-} from "../../../../../src/lib/auth.server";
+} from "@/lib/auth/auth.server";
 
 export async function POST(req: Request) {
   console.log("HIT /api/auth/login POST");
