@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  test-build-docker:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: attendance_app_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d attendance_app_test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      NODE_ENV: test
+      JWT_SECRET: test_secret_for_ci
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/attendance_app_test?schema=public
+      TEST_BASE_URL: http://127.0.0.1:3000
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install deps
+        run: npm install
+
+      - name: Prisma generate
+        run: npx prisma generate
+
+      - name: Prisma migrate deploy (test DB)
+        run: npx prisma migrate deploy
+
+      - name: Build
+        run: npm run build
+
+      - name: Start Next server
+        run: |
+          nohup npm run start -- -p 3000 > server.log 2>&1 &
+          echo "Started server, waiting..."
+          for i in {1..60}; do
+            if curl -sSf http://127.0.0.1:3000/ > /dev/null; then
+              echo "Server is up!"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Server did not start in time"
+          echo "=== server.log ==="
+          cat server.log
+          exit 1
+
+      - name: Run tests
+        run: npm test
+
+      - name: Docker build
+        if: github.ref == 'refs/heads/main'
+        run: docker build -t evidencija-zap:ci .
