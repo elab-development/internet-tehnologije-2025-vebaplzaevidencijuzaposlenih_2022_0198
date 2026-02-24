@@ -1,36 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth.guard";
-import { error } from "console";
-
-function toUTCDateMidnight(ymd: string) {
-  return new Date(ymd + "T00:00:00.000Z");
-}
-
-function isBadWeather(w: {
-  tempMin: number | null;
-  precipSum: number | null;
-  windMax: number | null;
-  weatherCode: number | null;
-}) {
-  const temp = w.tempMin ?? 0;
-  const precip = w.precipSum ?? 0;
-  const wind = w.windMax ?? 0;
-  const code = w.weatherCode ?? -1;
-
-  const isCold = temp < 0;
-  const isSnow = code >= 71 && code <= 77;
-  const isThunder = code >= 95;
-  const isHeavyRain = (code >= 61 && code <= 67) || (code >= 80 && code <= 82);
-
-  return (
-    isCold || isThunder || isSnow || precip >= 8 || wind >= 40 || isHeavyRain
-  );
-}
+import { requireAuth } from "@/lib/auth/auth.guard";
+import { parseDateOnlyUTC, addDaysUTC, toISODateUTC } from "@/lib/date/date";
+import { isBadWeather } from "@/lib/weather/wfh.utils";
 
 export async function POST(req: Request) {
   const auth = requireAuth(req);
-  if (auth instanceof NextResponse) return auth;
+  if (auth instanceof Response) return auth;
 
   const userId = (auth as any).userId as number | undefined;
   if (typeof userId !== "number") {
@@ -63,8 +39,13 @@ export async function POST(req: Request) {
 
   const dbRole = u.role.name;
 
-  const date = toUTCDateMidnight(dateStr);
-
+  const date = parseDateOnlyUTC(dateStr);
+  if (!date) {
+    return NextResponse.json(
+      { error: "date mora biti YYYY-MM-DD" },
+      { status: 400 }
+    );
+  }
   const locationKey = process.env.WEATHER_LOCATION_KEY ?? "BELGRADE_OFFICE";
   const w = await prisma.weatherDaily.findFirst({
     where: { locationKey, date },
@@ -130,11 +111,6 @@ export async function POST(req: Request) {
   });
 }
 
-function parseYMD(dateStr: string) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return null;
-  return new Date(dateStr + "T00:00:00.000Z");
-}
-
 export async function GET(req: Request) {
   const auth = requireAuth(req);
   if (auth instanceof NextResponse) return auth;
@@ -181,16 +157,15 @@ export async function GET(req: Request) {
         { status: 400 }
       );
     }
-    const fromDate = parseYMD(from);
-    const toDate = parseYMD(to);
+    const fromDate = parseDateOnlyUTC(from);
+    const toDate = parseDateOnlyUTC(to);
     if (!fromDate || !toDate) {
       return NextResponse.json(
         { error: "Invalid date format" },
         { status: 400 }
       );
     }
-    const endExclusive = new Date(toDate);
-    endExclusive.setUTCDate(endExclusive.getUTCDate() + 1);
+    const endExclusive = addDaysUTC(toDate, 1);
     where.date = { gte: fromDate, lt: endExclusive };
   }
 

@@ -3,26 +3,12 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
+import { toISODate, addDays } from "@/lib/date/date";
+//import { isoToHHMM } from "@/lib/format";
+import { attendanceBadgeClass } from "@/lib/attendance/attendance.utils";
+import { mapAttendanceApiItemToRecord } from "@/lib/attendance/attendance";
 import Button from "@/components/Button";
-import type { AttendanceRecord } from "@/lib/types";
-
-function pad2(n: number) {
-  return String(n).padStart(2, "0");
-}
-
-function todayYMDLocal() {
-  const d = new Date();
-  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
-}
-function isoToHHMM(iso: string) {
-  const d = new Date(iso);
-  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
-}
-function badgeClass(status: string) {
-  if (status === "PRESENT") return "badge badge-present";
-  if (status === "LATE") return "badge badge-late";
-  return "badge badge-absent";
-}
+import type { AttendanceRecord } from "@/lib/types/types";
 
 export default function AttendancePage() {
   const { user } = useAuth();
@@ -50,14 +36,13 @@ export default function AttendancePage() {
     setLoading(true);
     setStatusMsg("");
 
-    const to = todayYMDLocal();
-    const fromDate = new Date();
-    fromDate.setDate(fromDate.getDate() - 30);
-    const from = `${fromDate.getFullYear()}-${pad2(
-      fromDate.getMonth() + 1
-    )}-${pad2(fromDate.getDate())}`;
+    const now = new Date();
+    const to = toISODate(now);
+    const from = toISODate(addDays(now, -30));
 
     const qs = new URLSearchParams();
+    qs.set("from", from);
+    qs.set("to", to);
 
     if (canEditActivities) {
       if (selectedUserId == null) {
@@ -82,13 +67,9 @@ export default function AttendancePage() {
 
     const data = await res.json();
 
-    const mapped: AttendanceRecord[] = (data.items ?? []).map((a: any) => ({
-      id: a.id,
-      date: a.date,
-      checkInAt: a.startTime ? isoToHHMM(a.startTime) : null,
-      checkOutAt: a.endTime ? isoToHHMM(a.endTime) : null,
-      status: a.status,
-    }));
+    const mapped: AttendanceRecord[] = (data.items ?? []).map(
+      mapAttendanceApiItemToRecord
+    );
 
     mapped.sort((x, y) => (x.date < y.date ? 1 : -1));
 
@@ -132,7 +113,7 @@ export default function AttendancePage() {
   }, [user, canEditActivities]);
 
   const today = useMemo(() => {
-    const t = todayYMDLocal();
+    const t = toISODate(new Date());
     return records.find((r) => r.date === t);
   }, [records]);
 
@@ -149,7 +130,7 @@ export default function AttendancePage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify({ date: todayYMDLocal() }),
+      body: JSON.stringify({ date: toISODate(new Date()) }),
     });
 
     if (!res.ok) {
@@ -168,7 +149,7 @@ export default function AttendancePage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify({ date: todayYMDLocal() }),
+      body: JSON.stringify({ date: toISODate(new Date()) }),
     });
 
     if (!res.ok) {
@@ -308,7 +289,9 @@ export default function AttendancePage() {
                     <td>{r.checkInAt ?? "-"}</td>
                     <td>{r.checkOutAt ?? "-"}</td>
                     <td>
-                      <span className={badgeClass(r.status)}>{r.status}</span>
+                      <span className={attendanceBadgeClass(r.status)}>
+                        {r.status}
+                      </span>{" "}
                     </td>
                   </tr>
                 ))}

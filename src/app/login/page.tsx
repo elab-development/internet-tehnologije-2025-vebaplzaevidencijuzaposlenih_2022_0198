@@ -5,11 +5,8 @@ import Button from "@/components/Button";
 import TextField from "@/components/TextField";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
+import { isEmail } from "@/lib/date/validation";
 import Link from "next/link";
-
-function isValidEmail(email: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
 
 //React komponenta
 export default function LoginPage() {
@@ -35,7 +32,7 @@ export default function LoginPage() {
     if (!email.trim()) {
       setEmailError("Email je obavezan.");
       ok = false;
-    } else if (!isValidEmail(email.trim())) {
+    } else if (!isEmail(email.trim())) {
       setEmailError("Email format nije ispravan.");
       ok = false;
     } else {
@@ -85,7 +82,9 @@ export default function LoginPage() {
   //sta se vidi na ekranu:
   return (
     <main className="authLayout">
-      <h1 className="h1" style={{ fontSize: 28, marginBottom: 8 }}>Login</h1>
+      <h1 className="h1" style={{ fontSize: 28, marginBottom: 8 }}>
+        Login
+      </h1>
       <p className="h2" style={{ marginBottom: 24, fontSize: 16 }}>
         Unesi email i lozinku da pristupiš kalendaru.
       </p>
@@ -153,7 +152,9 @@ export default function LoginPage() {
           </p>
 
           <div className="row" style={{ marginTop: 8 }}>
-            <Button variant="primary" onClick={handleLogin}>Login</Button>
+            <Button variant="primary" onClick={handleLogin}>
+              Login
+            </Button>
             {statusMsg ? <span className="muted">{statusMsg}</span> : null}
           </div>
         </div>

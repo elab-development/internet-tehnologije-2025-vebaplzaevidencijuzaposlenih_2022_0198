@@ -1,31 +1,9 @@
 import { NextResponse } from "next/server";
 import prismaModule from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth.guard";
+import { requireAuth } from "@/lib/auth/auth.guard";
+import { addDaysUTC, toISODateUTC, todayUTCDateOnly } from "@/lib/date/date";
 
 const { prisma } = prismaModule;
-
-function parseDateOnlyUTC(dateStr: string): Date | null {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return null;
-  const d = new Date(`${dateStr}T00:00:00.000Z`);
-  return Number.isNaN(d.getTime()) ? null : d;
-}
-
-function addDaysUTC(d: Date, days: number): Date {
-  const copy = new Date(d);
-  copy.setUTCDate(copy.getUTCDate() + days);
-  return copy;
-}
-
-function toISODateUTC(d: Date) {
-  return d.toISOString().slice(0, 10);
-}
-
-function todayUTCDateOnly(): Date {
-  const now = new Date();
-  return new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
-  );
-}
 
 function getAuthUserIdAndRole(
   auth: any

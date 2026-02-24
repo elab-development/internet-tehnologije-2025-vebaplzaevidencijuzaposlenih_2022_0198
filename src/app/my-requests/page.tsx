@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Button from "@/components/Button";
 import { useAuth } from "@/components/AuthProvider";
+import { fmtLocalDateTimeSR } from "@/lib/date/format";
+import { wfhBadgeClass, wfhStatusLabel } from "@/lib/weather/wfh.utils";
 
 type WfhReq = {
   id: number;
@@ -18,24 +20,6 @@ type WfhReq = {
     email: string;
   } | null;
 };
-
-function fmt(iso: string | null) {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleString("sr-RS");
-}
-
-function statusLabel(s: WfhReq["status"]) {
-  if (s === "PENDING") return "NA ČEKANJU";
-  if (s === "APPROVED") return "ODOBRENO";
-  return "ODBIJENO";
-}
-function badgeClassWfh(status: WfhReq["status"]) {
-  if (status === "APPROVED") return "badge badge-present";
-  if (status === "PENDING") return "badge badge-late";
-  return "badge badge-absent";
-}
 
 export default function MyRequestsPage() {
   const { user } = useAuth();
@@ -133,14 +117,14 @@ export default function MyRequestsPage() {
                   >
                     <span>{r.date}</span>
 
-                    <span className={badgeClassWfh(r.status)}>
-                      {statusLabel(r.status)}
+                    <span className={wfhBadgeClass(r.status)}>
+                      {wfhStatusLabel(r.status)}
                     </span>
                   </div>
 
                   <div className="muted" style={{ marginTop: 6, fontSize: 13 }}>
-                    Podnet: {fmt(r.createdAt)}
-                    {" • "}Odluka: {fmt(r.decidedAt)}
+                    Podnet: {fmtLocalDateTimeSR(r.createdAt)} {" • "}Odluka:{" "}
+                    {fmtLocalDateTimeSR(r.decidedAt)}
                   </div>
 
                   {r.reason ? (

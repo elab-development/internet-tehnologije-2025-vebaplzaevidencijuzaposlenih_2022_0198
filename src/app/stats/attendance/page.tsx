@@ -4,25 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 import { Chart } from "react-google-charts";
 import Button from "@/components/Button";
 import { useAuth } from "@/components/AuthProvider";
+import { ymdLocal } from "@/lib/date/date";
 
 type StatsResp = {
   totals: Record<string, number>;
   months: Array<{ month: string; [k: string]: number | string }>;
 };
-
-function pad2(n: number) {
-  return String(n).padStart(2, "0");
-}
-function ymdLocal(d: Date) {
-  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
-}
-
-function badgeLabel(k: string) {
-  if (k === "PRESENT") return "PRESENT";
-  if (k === "LATE") return "LATE";
-  if (k === "ABSENT") return "ABSENT";
-  return k;
-}
 
 export default function AttendanceStatsPage() {
   const { user } = useAuth();
@@ -90,7 +77,7 @@ export default function AttendanceStatsPage() {
   useEffect(() => {
     if (!user) return;
     load();
-  }, [user]);
+  }, [user, from, to, selectedUser, canPickUser]);
 
   const pieData = useMemo(() => {
     if (!data) return null;
@@ -175,10 +162,6 @@ export default function AttendanceStatsPage() {
                 </select>
               </div>
             ) : null}
-          </div>
-
-          <div style={{ marginLeft: "auto" }}>
-            <Button onClick={load}>Prikaži</Button>
           </div>
         </div>
 

@@ -1,26 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth.guard";
-
-function parseDateOnlyUTC(s: string) {
-  // "YYYY-MM-DD"
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
-  const d = new Date(`${s}T00:00:00.000Z`);
-  if (Number.isNaN(d.getTime())) return null;
-  return d;
-}
-
-function addDaysUTC(d: Date, days: number) {
-  const x = new Date(d);
-  x.setUTCDate(x.getUTCDate() + days);
-  return x;
-}
-
-function yyyymmUTC(d: Date) {
-  const yyyy = d.getUTCFullYear();
-  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
-  return `${yyyy}-${mm}`;
-}
+import { requireAuth } from "@/lib/auth/auth.guard";
+import { parseDateOnlyUTC, addDaysUTC } from "@/lib/date/date";
+import { yyyyMmUTC } from "@/lib/date/date";
 
 type JwtPayloadLike = {
   userId: number;
@@ -28,9 +10,9 @@ type JwtPayloadLike = {
 };
 
 export async function GET(req: Request) {
-  const authOrRes = requireAuth(req);
+  const authOrRes = await requireAuth(req);
 
-  if (authOrRes instanceof NextResponse) {
+  if (authOrRes instanceof Response) {
     return authOrRes;
   }
 
@@ -114,7 +96,7 @@ export async function GET(req: Request) {
     if (totals[statusName] == null) totals[statusName] = 0;
     totals[statusName] += 1;
 
-    const m = yyyymmUTC(r.date);
+    const m = yyyyMmUTC(r.date);
     if (!byMonth[m]) {
       byMonth[m] = { PRESENT: 0, LATE: 0, ABSENT: 0 };
     }

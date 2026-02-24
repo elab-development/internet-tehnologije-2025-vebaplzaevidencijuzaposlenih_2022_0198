@@ -1,9 +1,9 @@
-// src/app/api/users/route.ts
 import { NextResponse } from "next/server";
 import prismaModule from "@/lib/prisma";
-import { requireRole } from "@/lib/auth.guard";
+import { requireRole } from "@/lib/auth/auth.guard";
 import bcrypt from "bcrypt";
 import type { Prisma } from "@prisma/client";
+import { isEmail } from "@/lib/date/validation";
 
 const { prisma } = prismaModule;
 
@@ -20,10 +20,6 @@ type UserListItem = Prisma.UserGetPayload<{
     role: { select: { name: true } };
   };
 }>;
-
-function isEmail(s: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
-}
 
 export async function GET(req: Request) {
   console.log("HIT /api/users GET");

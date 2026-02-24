@@ -5,14 +5,33 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Button from "@/components/Button";
 import Modal from "@/components/Modal";
 import TextField from "@/components/TextField";
-import { addDays, startOfWeekMonday, toISODate } from "@/lib/date";
-import { getWeatherIcon } from "@/lib/weather.ui";
+import { addDays, startOfWeekMonday, toISODate } from "@/lib/date/date";
+import { getWeatherIcon } from "@/lib/weather/weather.ui";
+import { isoToHHMM, safeToISOString } from "@/lib/date/format";
+import {
+  isValidTimeHHMM,
+  timeToMinutes,
+  isValidISODateYYYYMMDD,
+} from "@/lib/date/validation";
+import {
+  startOfYearYMD,
+  endOfYearYMD,
+  mergeUniqueHolidays,
+  type Holiday,
+} from "@/lib/holidays/holidays";
+import { ownerLabel } from "@/lib/activities/activity";
+import {
+  buildMonthWeeks,
+  startOfWeekMondayLocal,
+  weekDayNames,
+  ymdLocal,
+  isSameYMD,
+  isInWorkWeekRange,
+} from "@/lib/attendance/weekPicker";
 
 import { useAuth } from "@/components/AuthProvider";
 
 const dayNames = ["Pon", "Uto", "Sre", "Čet", "Pet"];
-
-type Holiday = { date: string; name: string };
 
 type Activity = {
   id: number;
@@ -32,124 +51,6 @@ type WeatherDay = {
   windMax: number | null;
   weatherCode: number | null;
 };
-
-function ownerLabel(a: Activity) {
-  const full = `${a.user.firstName} ${a.user.lastName}`.trim();
-  return full ? full : a.user.email;
-}
-
-function isValidTime(t: string) {
-  return /^\d{2}:\d{2}$/.test(t);
-}
-
-function timeToMinutes(t: string) {
-  const [hh, mm] = t.split(":").map(Number);
-  return hh * 60 + mm;
-}
-
-function isoToHHMM(iso: string) {
-  const d = new Date(iso);
-  const hh = String(d.getHours()).padStart(2, "0");
-  const mm = String(d.getMinutes()).padStart(2, "0");
-  return `${hh}:${mm}`;
-}
-
-function isValidISODate(d: string) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return false;
-  const dt = new Date(`${d}T00:00:00.000Z`);
-  return !Number.isNaN(dt.getTime());
-}
-
-function safeToISOString(d: Date) {
-  if (Number.isNaN(d.getTime())) return null;
-  return d.toISOString();
-}
-function startOfYear(d: Date) {
-  return new Date(d.getFullYear(), 0, 1);
-}
-function endOfYear(d: Date) {
-  return new Date(d.getFullYear(), 11, 31);
-}
-
-function getMondaysOfYear(year: number) {
-  const first = startOfWeekMonday(new Date(year, 0, 1));
-  const lastDay = new Date(year, 11, 31);
-
-  const mondays: Date[] = [];
-  for (let cur = new Date(first); cur <= lastDay; cur = addDays(cur, 7)) {
-    mondays.push(new Date(cur));
-  }
-  return mondays;
-}
-
-function weekNumberISO(monday: Date) {
-  const d = new Date(
-    Date.UTC(monday.getFullYear(), monday.getMonth(), monday.getDate())
-  );
-  d.setUTCDate(d.getUTCDate() + 3);
-  const firstThursday = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
-  const diff = d.getTime() - firstThursday.getTime();
-  return 1 + Math.round(diff / (7 * 24 * 60 * 60 * 1000));
-}
-const weekDayNames = ["Pon", "Uto", "Sre", "Čet", "Pet", "Sub", "Ned"];
-
-function startOfWeekMondayLocal(d: Date) {
-  const x = new Date(d);
-  const day = x.getDay(); // 0=ned,1=pon...
-  const diff = day === 0 ? -6 : 1 - day;
-  x.setDate(x.getDate() + diff);
-  x.setHours(0, 0, 0, 0);
-  return x;
-}
-
-function ymdLocal(d: Date) {
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
-}
-
-function buildMonthWeeks(year: number, monthIndex0: number) {
-  const firstOfMonth = new Date(year, monthIndex0, 1);
-  const lastOfMonth = new Date(year, monthIndex0 + 1, 0);
-
-  const gridStart = startOfWeekMondayLocal(firstOfMonth);
-  const gridEnd = startOfWeekMondayLocal(lastOfMonth);
-  const endInclusive = new Date(gridEnd);
-  endInclusive.setDate(endInclusive.getDate() + 6);
-
-  const weeks: Date[][] = [];
-  for (
-    let cur = new Date(gridStart);
-    cur <= endInclusive;
-    cur.setDate(cur.getDate() + 7)
-  ) {
-    const week: Date[] = [];
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(cur);
-      d.setDate(d.getDate() + i);
-      week.push(d);
-    }
-    weeks.push(week);
-  }
-  return weeks;
-}
-
-function isSameYMD(a: string, b: string) {
-  return a === b;
-}
-
-function inSelectedWorkWeek(day: Date, selectedMonday: string) {
-  const d = ymdLocal(day);
-  const mon = selectedMonday;
-  return d >= mon && d <= ymdLocal(addDays(new Date(mon), 4));
-}
-function startOfYearYMD(year: number) {
-  return `${year}-01-01`;
-}
-function endOfYearYMD(year: number) {
-  return `${year}-12-31`;
-}
 
 export default function CalendarPage() {
   const { user } = useAuth();
@@ -278,19 +179,6 @@ export default function CalendarPage() {
     }
   }
 
-  function mergeUniqueHolidays(a: Holiday[], b: Holiday[]) {
-    const seen = new Set<string>();
-    const out: Holiday[] = [];
-
-    for (const h of [...a, ...b]) {
-      const key = `${h.date}|${h.name}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      out.push(h);
-    }
-    return out;
-  }
-
   async function loadUsers() {
     if (!canEditActivities) return;
 
@@ -400,7 +288,7 @@ export default function CalendarPage() {
       setWfhErr("Datum je obavezan.");
       return;
     }
-    if (!isValidISODate(wfhDate)) {
+    if (!isValidISODateYYYYMMDD(wfhDate)) {
       setWfhErr("Datum mora biti validan i u formatu YYYY-MM-DD.");
       return;
     }
@@ -464,10 +352,10 @@ export default function CalendarPage() {
   function validateForm() {
     if (canEditActivities && !userId) return "Moraš da izabereš korisnika.";
     if (!formDate) return "Datum je obavezan.";
-    if (!isValidISODate(formDate))
+    if (!isValidISODateYYYYMMDD(formDate))
       return "Datum mora biti validan i u formatu YYYY-MM-DD.";
     if (!title.trim()) return "Naziv aktivnosti je obavezan.";
-    if (!isValidTime(start) || !isValidTime(end))
+    if (!isValidTimeHHMM(start) || !isValidTimeHHMM(end))
       return "Vreme mora biti u formatu HH:mm.";
     if (timeToMinutes(start) >= timeToMinutes(end))
       return "Početak mora biti pre kraja.";
@@ -621,7 +509,9 @@ export default function CalendarPage() {
 
   return (
     <main>
-      <h1 className="h1" style={{ fontSize: 28, marginBottom: 6 }}>Kalendar Aktivnosti</h1>
+      <h1 className="h1" style={{ fontSize: 28, marginBottom: 6 }}>
+        Kalendar Aktivnosti
+      </h1>
       <p className="h2" style={{ marginBottom: 24, fontSize: 16 }}>
         Pregled aktivnosti tokom radne nedelje (pon–pet).
       </p>
@@ -673,7 +563,9 @@ export default function CalendarPage() {
       </div>
       {statusMsg ? (
         <div
-          className={`notice ${statusType === "error" ? "notice-error" : ""} ${statusType === "info" ? "notice-success" : ""}`}
+          className={`notice ${statusType === "error" ? "notice-error" : ""} ${
+            statusType === "info" ? "notice-success" : ""
+          }`}
           style={
             statusType === "info"
               ? { marginTop: 16, marginBottom: 0 }
@@ -750,8 +642,12 @@ export default function CalendarPage() {
                           gap: 8,
                           padding: "6px 10px",
                           borderRadius: 999,
-                          background: isHoliday ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.04)",
-                          border: isHoliday ? "1px solid #d1d5db" : "1px solid rgba(255,255,255,0.10)",
+                          background: isHoliday
+                            ? "rgba(0,0,0,0.06)"
+                            : "rgba(255,255,255,0.04)",
+                          border: isHoliday
+                            ? "1px solid #d1d5db"
+                            : "1px solid rgba(255,255,255,0.10)",
                           fontSize: 12,
                           whiteSpace: "nowrap",
                           opacity: isHoliday ? 1 : 0.7,
@@ -774,8 +670,12 @@ export default function CalendarPage() {
                         gap: 8,
                         padding: "8px 6px",
                         borderRadius: 999,
-                        background: isHoliday ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.06)",
-                        border: isHoliday ? "1px solid #d1d5db" : "1px solid rgba(255,255,255,0.12)",
+                        background: isHoliday
+                          ? "rgba(0,0,0,0.06)"
+                          : "rgba(255,255,255,0.06)",
+                        border: isHoliday
+                          ? "1px solid #d1d5db"
+                          : "1px solid rgba(255,255,255,0.12)",
                         fontSize: 13,
                         whiteSpace: "nowrap",
                         marginTop: 0,
@@ -843,7 +743,9 @@ export default function CalendarPage() {
               ) : null}
 
               {list.length === 0 ? (
-                <div className="muted" style={{ padding: 12 }}>Nema aktivnosti.</div>
+                <div className="muted" style={{ padding: 12 }}>
+                  Nema aktivnosti.
+                </div>
               ) : (
                 list.map((a) => (
                   <div
@@ -865,7 +767,7 @@ export default function CalendarPage() {
 
                     {canEditActivities ? (
                       <div className="muted" style={{ fontSize: 12 }}>
-                        Korisnik: <strong>{ownerLabel(a)}</strong>
+                        Korisnik: <strong>{ownerLabel(a.user)}</strong>{" "}
                       </div>
                     ) : null}
 
@@ -1148,11 +1050,9 @@ export default function CalendarPage() {
                               isSelected &&
                               dayYMD >= weekStartStr &&
                               dayYMD <= weekEndStr;
-                            const isWorkHover =
-                              hoverWeekStart &&
-                              dayYMD >= hoverWeekStart &&
-                              dayYMD <=
-                                ymdLocal(addDays(new Date(hoverWeekStart), 4));
+                            const isWorkHover = hoverWeekStart
+                              ? isInWorkWeekRange(dayYMD, hoverWeekStart)
+                              : false;
                             const isHolidayDot = Boolean(holidayByDate[dayYMD]);
 
                             return (
@@ -1238,7 +1138,11 @@ export default function CalendarPage() {
             <Button disabled={wfhBusy} onClick={() => setWfhOpen(false)}>
               Poništi
             </Button>
-            <Button variant="primary" disabled={wfhBusy} onClick={submitWfhRequest}>
+            <Button
+              variant="primary"
+              disabled={wfhBusy}
+              onClick={submitWfhRequest}
+            >
               {wfhBusy ? "Slanje..." : "Pošalji"}
             </Button>
           </div>

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
-import { getWeatherIcon } from "@/lib/weather.ui";
+import { getWeatherIcon } from "@/lib/weather/weather.ui";
 import UserAvatar from "@/components/UserAvatar";
 
 export default function HomePage() {
@@ -95,7 +95,10 @@ export default function HomePage() {
           Evidencija prisustva zaposlenih
         </h1>
 
-        <p className="h2" style={{ marginTop: 0, marginBottom: 24, fontSize: 17 }}>
+        <p
+          className="h2"
+          style={{ marginTop: 0, marginBottom: 24, fontSize: 17 }}
+        >
           Jednostavan sistem za praćenje dolazaka, odlazaka i aktivnosti.
         </p>
 
@@ -258,7 +261,10 @@ export default function HomePage() {
           boxShadow: "0 2px 16px rgba(15, 23, 42, 0.08)",
         }}
       >
-        <div className="sectionTitle" style={{ fontSize: 20, marginBottom: 14 }}>
+        <div
+          className="sectionTitle"
+          style={{ fontSize: 20, marginBottom: 14 }}
+        >
           O kompaniji
         </div>
         <p className="muted" style={{ marginTop: 8, lineHeight: 1.6 }}>
@@ -292,7 +298,10 @@ export default function HomePage() {
           boxShadow: "0 2px 16px rgba(15, 23, 42, 0.08)",
         }}
       >
-        <div className="sectionTitle" style={{ marginBottom: 16, fontSize: 20 }}>
+        <div
+          className="sectionTitle"
+          style={{ marginBottom: 16, fontSize: 20 }}
+        >
           Galerija (slideshow)
         </div>
 

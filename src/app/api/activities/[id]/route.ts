@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import prismaModule from "@/lib/prisma";
-import { requireRole } from "@/lib/auth.guard";
+import { requireRole } from "@/lib/auth/auth.guard";
 
 const { prisma } = prismaModule;
 

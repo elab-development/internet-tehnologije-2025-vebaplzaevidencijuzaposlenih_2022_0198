@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server";
-import { readAuthTokenFromRequest, verifyToken } from "@/lib/auth.server";
+import { readAuthTokenFromRequest, verifyToken } from "@/lib/auth/auth.server";
 
 //vraca usera iz jwta
 export function getAuthUser(req: Request) {
+  const auth = req.headers.get("authorization");
+  if (auth?.startsWith("Bearer ")) {
+    const token = auth.slice(7).trim();
+    const payload = verifyToken(token);
+    return payload ?? null;
+  }
   const token = readAuthTokenFromRequest(req);
   if (!token) return null;
 
