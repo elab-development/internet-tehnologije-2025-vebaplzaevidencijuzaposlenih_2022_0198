@@ -1,25 +1,22 @@
 import { NextResponse } from "next/server";
-import prismaModule from "@/lib/prisma";
 import { requireRole } from "@/lib/auth/auth.guard";
 import bcrypt from "bcrypt";
-import type { Prisma } from "@prisma/client";
+import prismaModule from "@/lib/prisma";
 import { isEmail } from "@/lib/date/validation";
 
 const { prisma } = prismaModule;
 
 type RoleName = "EMPLOYEE" | "MANAGER" | "ADMIN";
 
-type UserListItem = Prisma.UserGetPayload<{
-  select: {
-    id: true;
-    firstName: true;
-    lastName: true;
-    email: true;
-    createdAt: true;
-    lastLoginAt: true;
-    role: { select: { name: true } };
-  };
-}>;
+type UserListItem = {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  createdAt: Date;
+  lastLoginAt: Date | null;
+  role: { name: string };
+};
 
 export async function GET(req: Request) {
   console.log("HIT /api/users GET");
