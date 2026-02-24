@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/auth/auth.guard";
 import { parseDateOnlyUTC, addDaysUTC, toISODateUTC } from "@/lib/date/date";
+import { ensureHolidaysInDb } from "@/lib/holidays/holidays.server";
 
 export async function GET(req: Request) {
   const auth = await requireAuth(req);
@@ -28,7 +29,7 @@ export async function GET(req: Request) {
       { status: 400 }
     );
   }
-
+  await ensureHolidaysInDb(country, fromDt, toDt);
   const endExclusive = addDaysUTC(toDt, 1);
 
   const holidays = await prisma.holiday.findMany({

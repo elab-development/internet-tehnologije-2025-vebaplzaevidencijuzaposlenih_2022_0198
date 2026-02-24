@@ -56,7 +56,7 @@ export default function LoginPage() {
     setStatusMsg("");
     if (!validate()) return;
 
-    setStatusMsg("Ulogujem...");
+    setStatusMsg("Logujem...");
 
     const res = await fetch("/api/auth/login", {
       method: "POST",
@@ -72,7 +72,7 @@ export default function LoginPage() {
       return;
     }
 
-    // backend vraća user: { id, email, role }
+    // backend vraca user: { id, email, role }
     await refresh();
 
     setStatusMsg("Ulogovan. Prebacujem...");

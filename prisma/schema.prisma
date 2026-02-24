@@ -82,13 +82,13 @@ model AdminAction {
 }
 model Holiday {
   id        Int      @id @default(autoincrement())
-  date      DateTime // (date-only koncept)
-  name      String   
+  date      DateTime // date-only koncept (00:00Z)
+  name      String
   country   String   // "RS"
   source    String   // "nager"
   createdAt DateTime @default(now())
 
-  @@unique([date, country, name])
+  @@unique([date, country], name: "country_date")
   @@index([date, country])
 }
 model WeatherDaily {

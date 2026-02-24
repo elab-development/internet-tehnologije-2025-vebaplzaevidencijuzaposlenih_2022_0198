@@ -46,27 +46,24 @@ export async function POST(req: Request) {
     const dt = parseDateOnlyUTC(h.date);
     if (!dt) continue;
 
-    const row = await prisma.holiday.upsert({
+    const finalName = (h.localName ?? h.name)?.trim();
+
+    await prisma.holiday.upsert({
       where: {
-        date_country_name: {
-          date: dt,
-          country,
-          name: h.localName ?? h.name,
-        },
+        country_date: { date: dt, country },
       },
       create: {
         date: dt,
         country,
-        name: h.localName ?? h.name,
+        name: finalName,
         source: "nager",
       },
       update: {
+        name: finalName,
         source: "nager",
       },
       select: { id: true },
     });
-
-    created.push(row.id);
   }
 
   return NextResponse.json({
