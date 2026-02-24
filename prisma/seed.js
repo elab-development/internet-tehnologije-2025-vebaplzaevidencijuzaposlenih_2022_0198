@@ -270,6 +270,21 @@ async function main() {
     password: "Admin123@",
     roleId: roleAdmin.id,
   });
+  const ana = await upsertUser({
+    firstName: "Ana",
+    lastName: "Jovovic",
+    email: "ana.employee@demo.com",
+    password: "Ana123@",
+    roleId: roleEmployee.id,
+  });
+
+  const miljan = await upsertUser({
+    firstName: "Miljan",
+    lastName: "Simjanovski",
+    email: "miljan.employee@demo.com",
+    password: "Miljan123@",
+    roleId: roleEmployee.id,
+  });
 
   // ---------- activities (this week) ----------
   const weekMon = startOfWeekMonday(new Date());
@@ -337,6 +352,64 @@ async function main() {
     startHHMM: "12:00",
     endHHMM: "16:00",
     description: "Personal time off",
+  });
+  // Ana activities (EMPLOYEE)
+  await createActivityIfNotExists({
+    userId: ana.id,
+    typeId: typeWork.id,
+    dateObj: weekMon,
+    name: "Deep work (feature implementation)",
+    startHHMM: "10:00",
+    endHHMM: "12:30",
+    description: "Focus block for implementation tasks",
+  });
+
+  await createActivityIfNotExists({
+    userId: ana.id,
+    typeId: typeMeeting.id,
+    dateObj: wed,
+    name: "Client demo prep",
+    startHHMM: "13:00",
+    endHHMM: "14:00",
+  });
+
+  await createActivityIfNotExists({
+    userId: ana.id,
+    typeId: typeMeeting.id,
+    dateObj: fri,
+    name: "Retrospective",
+    startHHMM: "09:00",
+    endHHMM: "09:45",
+  });
+
+  // Miljan activities (EMPLOYEE)
+  await createActivityIfNotExists({
+    userId: marko.id,
+    typeId: typeMeeting.id,
+    dateObj: tue,
+    name: "Onboarding (project walkthrough)",
+    startHHMM: "11:00",
+    endHHMM: "12:00",
+  });
+
+  await createActivityIfNotExists({
+    userId: marko.id,
+    typeId: typeWork.id,
+    dateObj: thu,
+    name: "Bug triage",
+    startHHMM: "10:30",
+    endHHMM: "11:30",
+    description: "Review, reproduce and prioritize issues",
+  });
+
+  await createActivityIfNotExists({
+    userId: marko.id,
+    typeId: typeMeeting.id,
+    dateObj: fri,
+    name: "Tech talk: Prisma + Next.js patterns",
+    startHHMM: "14:00",
+    endHHMM: "15:00",
+    description: "Internal sharing session",
   });
 
   await seedRandomAttendanceForAllUsers();
