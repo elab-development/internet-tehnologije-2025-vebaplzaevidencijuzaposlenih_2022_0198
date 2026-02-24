@@ -270,6 +270,7 @@ async function main() {
     password: "Admin123@",
     roleId: roleAdmin.id,
   });
+
   const ana = await upsertUser({
     firstName: "Ana",
     lastName: "Jovovic",
@@ -384,7 +385,7 @@ async function main() {
 
   // Miljan activities (EMPLOYEE)
   await createActivityIfNotExists({
-    userId: marko.id,
+    userId: miljan.id,
     typeId: typeMeeting.id,
     dateObj: tue,
     name: "Onboarding (project walkthrough)",
@@ -393,7 +394,7 @@ async function main() {
   });
 
   await createActivityIfNotExists({
-    userId: marko.id,
+    userId: miljan.id,
     typeId: typeWork.id,
     dateObj: thu,
     name: "Bug triage",
@@ -403,7 +404,7 @@ async function main() {
   });
 
   await createActivityIfNotExists({
-    userId: marko.id,
+    userId: miljan.id,
     typeId: typeMeeting.id,
     dateObj: fri,
     name: "Tech talk: Prisma + Next.js patterns",
